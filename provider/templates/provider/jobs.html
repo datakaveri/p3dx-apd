@@ -1,0 +1,24 @@
+{% load static %}
+{% load render_table from django_tables2 %}
+{% load django_bootstrap5 %}
+<!doctype html>
+<html>
+<head>
+    {% bootstrap_css %}
+</head>
+{% include "provider/navbar.html" %}
+<body>
+    <div class="container">
+        <div class="row p-2">
+            <h2>Jobs</h2>
+        </div>
+        {% block body %}
+        <div class="row">
+            <div class="col-sm-15">
+                {% render_table table %}
+            </div>
+        </div>
+        {% endblock %}
+    </div>
+</body>
+</html>
