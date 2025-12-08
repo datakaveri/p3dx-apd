@@ -2,7 +2,7 @@ arrow==1.2.3
 asgiref==3.7.2
 asn1crypto==1.5.1
 attrs==22.1.0
-Authlib==1.2.1
+Authlib==1.6.5
 beautifulsoup4==4.11.2
 blessed==1.19.1
 boto3==1.17.81
