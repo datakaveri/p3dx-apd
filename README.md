@@ -7,7 +7,7 @@ virtualenv -p python3 .
 
 - Clone repository in the directory
 ```
-git clone https://github.com/datakaveri/enclave-apd-poc
+git clone https://github.com/datakaveri/p3dx-apd
 ```
 
 - Install requirements
