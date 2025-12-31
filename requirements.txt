@@ -7,7 +7,7 @@ beautifulsoup4==4.11.2
 blessed==1.19.1
 boto3==1.17.81
 botocore==1.20.112
-cbor2==5.4.3
+cbor2==5.8.0
 certifi==2022.12.7
 certvalidator==0.11.1
 cffi==1.15.1
