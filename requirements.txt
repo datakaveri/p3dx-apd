@@ -12,7 +12,7 @@ certifi==2022.12.7
 certvalidator==0.11.1
 cffi==1.15.1
 charset-normalizer==2.1.1
-cryptography==39.0.2
+cryptography==46.0.5
 Django==4.2.6
 django-bootstrap5==22.2
 django-cors-headers==4.4.0
