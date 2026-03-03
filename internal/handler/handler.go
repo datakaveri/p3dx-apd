@@ -21,6 +21,46 @@ func New(accessReq *service.AccessRequestService) *Handler {
 }
 
 // ---------------------------------------------------------------------------
+// Phase 0 — ConMan pushes policy to APD
+// POST /api/v1/policy
+// ---------------------------------------------------------------------------
+
+func (h *Handler) ReceivePolicy(w http.ResponseWriter, r *http.Request) {
+	var body domain.ReceivePolicyBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body: "+err.Error())
+		return
+	}
+
+	policy, err := h.accessReq.ReceivePolicy(r.Context(), body)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusCreated, domain.APIResponse{
+		Status:  "success",
+		Message: "policy stored",
+		Data:    policy,
+	})
+}
+
+// ---------------------------------------------------------------------------
+// Phase 0 — TOP fetches policy from APD
+// GET /api/v1/policy/{policyId}
+// ---------------------------------------------------------------------------
+
+func (h *Handler) GetPolicy(w http.ResponseWriter, r *http.Request) {
+	policyID := chi.URLParam(r, "policyId")
+
+	policy, err := h.accessReq.GetPolicy(r.Context(), policyID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, domain.APIResponse{Status: "success", Data: policy})
+}
+
+// ---------------------------------------------------------------------------
 // Phase 1 — Consumer creates access request
 // POST /api/v1/access-requests
 // ---------------------------------------------------------------------------

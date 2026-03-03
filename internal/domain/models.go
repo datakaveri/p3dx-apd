@@ -263,3 +263,27 @@ type APIResponse struct {
 	Message string      `json:"message,omitempty"`
 	Data    interface{} `json:"data,omitempty"`
 }
+
+// ---------------------------------------------------------------------------
+// Policy  (Phase 0 — ConMan pushes policy; TOP fetches it)
+// ---------------------------------------------------------------------------
+
+// Policy represents an access policy issued by the Contract Manager (ConMan).
+// It is stored by the APD and served to the Trusted Orchestrator Platform (TOP)
+// before any access request is created.
+type Policy struct {
+	PolicyID  string                 `json:"policyId"`
+	ItemID    string                 `json:"itemId"`
+	IssuedBy  string                 `json:"issuedBy"` // ConMan identity
+	Rules     map[string]interface{} `json:"rules"`
+	IssuedAt  time.Time              `json:"issuedAt"`
+	ExpiresAt *time.Time             `json:"expiresAt,omitempty"`
+}
+
+type ReceivePolicyBody struct {
+	PolicyID  string                 `json:"policyId"`
+	ItemID    string                 `json:"itemId"`
+	IssuedBy  string                 `json:"issuedBy"`
+	Rules     map[string]interface{} `json:"rules"`
+	ExpiresAt *time.Time             `json:"expiresAt,omitempty"`
+}

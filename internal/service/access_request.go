@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -19,6 +20,10 @@ type AccessRequestService struct {
 	attest      *AttestationService
 	consent     *ConsentService
 	email       *EmailService
+
+	// Phase 0: policies received from ConMan, keyed by policyId
+	policyMu sync.RWMutex
+	policies map[string]*domain.Policy
 }
 
 func NewAccessRequestService(
@@ -29,12 +34,60 @@ func NewAccessRequestService(
 	email *EmailService,
 ) *AccessRequestService {
 	return &AccessRequestService{
-		repo:    repo,
-		tee:     tee,
-		attest:  attest,
-		consent: consent,
-		email:   email,
+		repo:     repo,
+		tee:      tee,
+		attest:   attest,
+		consent:  consent,
+		email:    email,
+		policies: make(map[string]*domain.Policy),
 	}
+}
+
+// ---------------------------------------------------------------------------
+// Phase 0 — ConMan pushes policy; TOP fetches it
+// ---------------------------------------------------------------------------
+
+// ReceivePolicy stores a policy received from the Contract Manager (ConMan).
+func (s *AccessRequestService) ReceivePolicy(ctx context.Context, body domain.ReceivePolicyBody) (*domain.Policy, error) {
+	if body.PolicyID == "" {
+		return nil, errors.New("policyId is required")
+	}
+	if body.ItemID == "" {
+		return nil, errors.New("itemId is required")
+	}
+	if body.IssuedBy == "" {
+		return nil, errors.New("issuedBy is required")
+	}
+
+	policy := &domain.Policy{
+		PolicyID:  body.PolicyID,
+		ItemID:    body.ItemID,
+		IssuedBy:  body.IssuedBy,
+		Rules:     body.Rules,
+		IssuedAt:  time.Now(),
+		ExpiresAt: body.ExpiresAt,
+	}
+
+	s.policyMu.Lock()
+	s.policies[policy.PolicyID] = policy
+	s.policyMu.Unlock()
+
+	return policy, nil
+}
+
+// GetPolicy returns the policy for the given policyId, called by the TOP.
+func (s *AccessRequestService) GetPolicy(ctx context.Context, policyID string) (*domain.Policy, error) {
+	s.policyMu.RLock()
+	policy, ok := s.policies[policyID]
+	s.policyMu.RUnlock()
+
+	if !ok {
+		return nil, fmt.Errorf("policy %q not found", policyID)
+	}
+	if policy.ExpiresAt != nil && policy.ExpiresAt.Before(time.Now()) {
+		return nil, fmt.Errorf("policy %q has expired", policyID)
+	}
+	return policy, nil
 }
 
 // ---------------------------------------------------------------------------
