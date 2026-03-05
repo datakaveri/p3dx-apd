@@ -61,6 +61,22 @@ func (h *Handler) GetPolicy(w http.ResponseWriter, r *http.Request) {
 }
 
 // ---------------------------------------------------------------------------
+// Phase 0 — TOP fetches policy by itemId (fallback)
+// GET /api/v1/policy/item/{itemId}
+// ---------------------------------------------------------------------------
+
+func (h *Handler) GetPolicyByItemID(w http.ResponseWriter, r *http.Request) {
+	itemID := chi.URLParam(r, "itemId")
+
+	policy, err := h.accessReq.GetPolicyByItemID(r.Context(), itemID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, domain.APIResponse{Status: "success", Data: policy})
+}
+
+// ---------------------------------------------------------------------------
 // Phase 1 — Consumer creates access request
 // POST /api/v1/access-requests
 // ---------------------------------------------------------------------------
