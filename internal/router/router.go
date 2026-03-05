@@ -35,8 +35,9 @@ func New(h *handler.Handler, jwtMW *middleware.JWTMiddleware) http.Handler {
 	// Policy endpoints — Phase 0.
 	// ConMan pushes a policy; TOP fetches it. Internal network only (no user JWT).
 	r.Route("/api/v1/policy", func(r chi.Router) {
-		r.Post("/", h.ReceivePolicy)              // ConMan → APD: store policy
-		r.Get("/{policyId}", h.GetPolicy)         // TOP   → APD: fetch policy
+		r.Post("/", h.ReceivePolicy)                  // ConMan → APD: store policy
+		r.Get("/{policyId}", h.GetPolicy)             // TOP   → APD: fetch by policyId
+		r.Get("/item/{itemId}", h.GetPolicyByItemID)  // TOP   → APD: fetch by itemId (fallback)
 	})
 
 	// TEE callbacks — called by the TEE Orchestrator (internal network only).

@@ -90,6 +90,24 @@ func (s *AccessRequestService) GetPolicy(ctx context.Context, policyID string) (
 	return policy, nil
 }
 
+// GetPolicyByItemID returns the first non-expired policy matching the given itemId.
+// Used by TOP as a fallback when only the itemId is available in the contract.
+func (s *AccessRequestService) GetPolicyByItemID(ctx context.Context, itemID string) (*domain.Policy, error) {
+	s.policyMu.RLock()
+	defer s.policyMu.RUnlock()
+
+	for _, policy := range s.policies {
+		if policy.ItemID != itemID {
+			continue
+		}
+		if policy.ExpiresAt != nil && policy.ExpiresAt.Before(time.Now()) {
+			continue
+		}
+		return policy, nil
+	}
+	return nil, fmt.Errorf("no policy found for itemId %q", itemID)
+}
+
 // ---------------------------------------------------------------------------
 // Phase 1 — Consumer creates request
 // ---------------------------------------------------------------------------
