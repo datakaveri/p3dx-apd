@@ -21,6 +21,10 @@ func New(h *handler.Handler, jwtMW *middleware.JWTMiddleware) http.Handler {
 	r.Use(jsonContentType)
 
 	// ---------------------------------------------------------------------------
+	// Contract endpoint (ConMan → APD)
+	// ---------------------------------------------------------------------------
+
+	// ---------------------------------------------------------------------------
 	// Public routes
 	// ---------------------------------------------------------------------------
 	r.Get("/health", h.HealthCheck)
@@ -32,19 +36,28 @@ func New(h *handler.Handler, jwtMW *middleware.JWTMiddleware) http.Handler {
 		r.Get("/deny", h.DenyConsent)
 	})
 
-	// Policy endpoints — Phase 0.
-	// ConMan pushes a policy; TOP fetches it. Internal network only (no user JWT).
+	// ---------------------------------------------------------------------------
+	// Policy endpoints — Phase 0
+	// ---------------------------------------------------------------------------
+
+	// Original routes (kept unchanged)
 	r.Route("/api/v1/policy", func(r chi.Router) {
-		r.Post("/", h.ReceivePolicy)              // ConMan → APD: store policy
-		r.Get("/{policyId}", h.GetPolicy)         // TOP   → APD: fetch policy
+		r.Post("/", h.ReceivePolicy)
+		r.Get("/{policyId}", h.GetPolicy)
 	})
 
-	// TEE callbacks — called by the TEE Orchestrator (internal network only).
-	// In production, restrict these to the orchestrator's IP range at the
-	// network/ingress level; no user JWT is expected here.
+	// Additional endpoints from provided snippet (kept identical)
+	r.Route("/api/v1", func(r chi.Router) {
+		r.Post("/policy", h.ReceivePolicy)
+		r.Get("/policy/{policyId}", h.GetPolicy)
+	})
+
+	// ---------------------------------------------------------------------------
+	// TEE callbacks — called by the TEE Orchestrator
+	// ---------------------------------------------------------------------------
 	r.Route("/api/v1/tee", func(r chi.Router) {
-		r.Post("/attestation", h.SubmitAttestation) // Phase 3
-		r.Post("/result", h.TEEResult)              // Phase 5
+		r.Post("/attestation", h.SubmitAttestation)
+		r.Post("/result", h.TEEResult)
 	})
 
 	// ---------------------------------------------------------------------------
@@ -56,23 +69,22 @@ func New(h *handler.Handler, jwtMW *middleware.JWTMiddleware) http.Handler {
 		// Consumer endpoints
 		r.Route("/api/v1/access-requests", func(r chi.Router) {
 			r.With(middleware.RequireRole("consumer")).
-				Post("/", h.CreateAccessRequest) // Phase 1
+				Post("/", h.CreateAccessRequest)
 
 			r.With(middleware.RequireRole("consumer")).
-				Get("/", h.ListAccessRequestsConsumer) // List own requests
+				Get("/", h.ListAccessRequestsConsumer)
 
 			r.Route("/{requestId}", func(r chi.Router) {
-				r.Get("/", h.GetAccessRequest) // Any authenticated user
+				r.Get("/", h.GetAccessRequest)
 
 				r.With(middleware.RequireRole("consumer")).
-					Post("/compute", h.TriggerComputation) // Phase 2
+					Post("/compute", h.TriggerComputation)
 
 				r.With(middleware.RequireRole("consumer")).
-					Get("/result", h.GetResult) // Phase 5 — poll for result
+					Get("/result", h.GetResult)
 
-				// Provider submits encrypted key bundle (Cases 2 & 3)
 				r.With(middleware.RequireRole("provider", "org_admin")).
-					Post("/key-bundle", h.SubmitKeyBundle) // Phase 4
+					Post("/key-bundle", h.SubmitKeyBundle)
 			})
 		})
 

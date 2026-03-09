@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -18,6 +19,27 @@ import (
 	"github.com/cdpg/dx/apd-go/internal/service"
 )
 
+// ---------------------------------------------------------------------------
+// Contract endpoint (TOP receives contract from ConMan)
+// ---------------------------------------------------------------------------
+func contractHandler(w http.ResponseWriter, r *http.Request) {
+
+	var contract map[string]interface{}
+
+	err := json.NewDecoder(r.Body).Decode(&contract)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	log.Println("Contract received from ConMan:", contract)
+
+	w.WriteHeader(http.StatusOK)
+}
+
+// ---------------------------------------------------------------------------
+// Main
+// ---------------------------------------------------------------------------
 func main() {
 	cfg, err := config.Load()
 	if err != nil {
@@ -81,17 +103,29 @@ func main() {
 	mux := router.New(h, jwtMW)
 
 	// ---------------------------------------------------------------------------
+	// Wrap router to add /contract endpoint without modifying router.go
+	// ---------------------------------------------------------------------------
+	handlerWithContract := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		if r.Method == http.MethodPost && r.URL.Path == "/contract" {
+			contractHandler(w, r)
+			return
+		}
+
+		mux.ServeHTTP(w, r)
+	})
+
+	// ---------------------------------------------------------------------------
 	// HTTP Server with graceful shutdown
 	// ---------------------------------------------------------------------------
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%s", cfg.Server.Port),
-		Handler:      mux,
+		Handler:      handlerWithContract,
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 30 * time.Second,
 		IdleTimeout:  60 * time.Second,
 	}
 
-	// Start server in a goroutine
 	go func() {
 		log.Printf("APD server listening on :%s", cfg.Server.Port)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -99,7 +133,6 @@ func main() {
 		}
 	}()
 
-	// Wait for OS signal
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
@@ -111,5 +144,6 @@ func main() {
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		log.Fatalf("server forced shutdown: %v", err)
 	}
+
 	log.Println("server exited cleanly")
 }

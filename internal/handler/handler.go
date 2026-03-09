@@ -21,6 +21,26 @@ func New(accessReq *service.AccessRequestService) *Handler {
 }
 
 // ---------------------------------------------------------------------------
+// Contract endpoint — ConMan pushes contract to APD
+// POST /contract
+// ---------------------------------------------------------------------------
+
+// func (h *Handler) ReceiveContract(w http.ResponseWriter, r *http.Request) {
+
+// 	var contract map[string]interface{}
+
+// 	err := json.NewDecoder(r.Body).Decode(&contract)
+// 	if err != nil {
+// 		http.Error(w, err.Error(), http.StatusBadRequest)
+// 		return
+// 	}
+
+// 	log.Println("Contract received:", contract)
+
+// 	w.WriteHeader(http.StatusOK)
+// }
+
+// ---------------------------------------------------------------------------
 // Phase 0 — ConMan pushes policy to APD
 // POST /api/v1/policy
 // ---------------------------------------------------------------------------
@@ -68,8 +88,6 @@ func (h *Handler) GetPolicy(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) CreateAccessRequest(w http.ResponseWriter, r *http.Request) {
 	consumerID := middleware.UserIDFromCtx(r.Context())
 
-	// In production, providerID / assetName / assetType are resolved from the DX Catalogue
-	// using itemId. We accept them inline here so the APD can be tested standalone.
 	var body struct {
 		domain.CreateAccessRequestBody
 		ProviderID string `json:"providerId"`
@@ -122,7 +140,7 @@ func (h *Handler) TriggerComputation(w http.ResponseWriter, r *http.Request) {
 }
 
 // ---------------------------------------------------------------------------
-// Phase 3 — TEE submits attestation report (TEE → APD callback)
+// Phase 3 — TEE submits attestation report
 // POST /api/v1/tee/attestation
 // ---------------------------------------------------------------------------
 
@@ -158,8 +176,7 @@ func (h *Handler) SubmitAttestation(w http.ResponseWriter, r *http.Request) {
 }
 
 // ---------------------------------------------------------------------------
-// Phase 4 — Provider approves runtime consent (via email link)
-// GET /api/v1/consent/{token}/approve
+// Phase 4 — Provider approves runtime consent
 // ---------------------------------------------------------------------------
 
 func (h *Handler) ApproveConsent(w http.ResponseWriter, r *http.Request) {
@@ -186,11 +203,6 @@ func (h *Handler) ApproveConsent(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, domain.APIResponse{Status: "success", Message: msg, Data: req})
 }
 
-// ---------------------------------------------------------------------------
-// Phase 4 — Provider denies runtime consent
-// GET /api/v1/consent/{token}/deny
-// ---------------------------------------------------------------------------
-
 func (h *Handler) DenyConsent(w http.ResponseWriter, r *http.Request) {
 	token := chi.URLParam(r, "token")
 
@@ -207,8 +219,7 @@ func (h *Handler) DenyConsent(w http.ResponseWriter, r *http.Request) {
 }
 
 // ---------------------------------------------------------------------------
-// Phase 4 (Cases 2 & 3) — Provider submits encrypted key bundle
-// POST /api/v1/access-requests/{requestId}/key-bundle
+// Phase 4 — Provider submits encrypted key bundle
 // ---------------------------------------------------------------------------
 
 func (h *Handler) SubmitKeyBundle(w http.ResponseWriter, r *http.Request) {
@@ -243,8 +254,7 @@ func (h *Handler) SubmitKeyBundle(w http.ResponseWriter, r *http.Request) {
 }
 
 // ---------------------------------------------------------------------------
-// Phase 5 — TEE reports result (TEE → APD callback)
-// POST /api/v1/tee/result
+// Phase 5 — TEE reports result
 // ---------------------------------------------------------------------------
 
 func (h *Handler) TEEResult(w http.ResponseWriter, r *http.Request) {
@@ -268,7 +278,6 @@ func (h *Handler) TEEResult(w http.ResponseWriter, r *http.Request) {
 // Status / result retrieval
 // ---------------------------------------------------------------------------
 
-// GET /api/v1/access-requests/{requestId}
 func (h *Handler) GetAccessRequest(w http.ResponseWriter, r *http.Request) {
 	requestID := chi.URLParam(r, "requestId")
 	req, err := h.accessReq.GetByID(r.Context(), requestID)
@@ -279,7 +288,6 @@ func (h *Handler) GetAccessRequest(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, domain.APIResponse{Status: "success", Data: req})
 }
 
-// GET /api/v1/access-requests (consumer view)
 func (h *Handler) ListAccessRequestsConsumer(w http.ResponseWriter, r *http.Request) {
 	consumerID := middleware.UserIDFromCtx(r.Context())
 	reqs, err := h.accessReq.ListByConsumer(r.Context(), consumerID)
@@ -290,7 +298,6 @@ func (h *Handler) ListAccessRequestsConsumer(w http.ResponseWriter, r *http.Requ
 	writeJSON(w, http.StatusOK, domain.APIResponse{Status: "success", Data: reqs})
 }
 
-// GET /api/v1/provider/access-requests (provider view)
 func (h *Handler) ListAccessRequestsProvider(w http.ResponseWriter, r *http.Request) {
 	providerID := middleware.UserIDFromCtx(r.Context())
 	reqs, err := h.accessReq.ListByProvider(r.Context(), providerID)
@@ -301,7 +308,6 @@ func (h *Handler) ListAccessRequestsProvider(w http.ResponseWriter, r *http.Requ
 	writeJSON(w, http.StatusOK, domain.APIResponse{Status: "success", Data: reqs})
 }
 
-// GET /api/v1/access-requests/{requestId}/result
 func (h *Handler) GetResult(w http.ResponseWriter, r *http.Request) {
 	requestID := chi.URLParam(r, "requestId")
 	consumerID := middleware.UserIDFromCtx(r.Context())
