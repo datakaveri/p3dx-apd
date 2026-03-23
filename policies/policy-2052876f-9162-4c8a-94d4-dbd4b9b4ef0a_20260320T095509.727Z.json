@@ -1,0 +1,23 @@
+{
+  "policyId": "policy-2052876f-9162-4c8a-94d4-dbd4b9b4ef0a",
+  "itemId": "ds-1",
+  "issuedBy": "test3",
+  "rules": {
+    "accessLevel": "read",
+    "allowedOrg": {
+      "emailDomain": "@datakaveri.org",
+      "id": "datakaveri"
+    },
+    "application": {
+      "id": "app-1",
+      "name": "Model 1 (Risk Prediction)"
+    },
+    "dataset": {
+      "id": "ds-1",
+      "name": "Dataset A (Claims)"
+    },
+    "notes": "",
+    "purpose": "research"
+  },
+  "expiresAt": "2026-03-28T00:00:00Z"
+}
