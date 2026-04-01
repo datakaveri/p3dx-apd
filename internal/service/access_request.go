@@ -2,8 +2,11 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -15,11 +18,11 @@ import (
 
 // AccessRequestService orchestrates the full TEE-based data access lifecycle.
 type AccessRequestService struct {
-	repo        *repository.AccessRequestRepo
-	tee         *TEEService
-	attest      *AttestationService
-	consent     *ConsentService
-	email       *EmailService
+	repo    *repository.AccessRequestRepo
+	tee     *TEEService
+	attest  *AttestationService
+	consent *ConsentService
+	email   *EmailService
 
 	// Phase 0: policies received from ConMan, keyed by policyId
 	policyMu sync.RWMutex
@@ -88,6 +91,107 @@ func (s *AccessRequestService) GetPolicy(ctx context.Context, policyID string) (
 		return nil, fmt.Errorf("policy %q has expired", policyID)
 	}
 	return policy, nil
+}
+
+func (s *AccessRequestService) GetPolicyByItemID(ctx context.Context, itemID string) (*domain.Policy, error) {
+	if itemID == "" {
+		return nil, errors.New("itemId is required")
+	}
+
+	now := time.Now()
+
+	s.policyMu.RLock()
+	for _, policy := range s.policies {
+		if policy == nil {
+			continue
+		}
+		if policy.ItemID != itemID {
+			continue
+		}
+		if policy.ExpiresAt != nil && policy.ExpiresAt.Before(now) {
+			continue
+		}
+		s.policyMu.RUnlock()
+		return policy, nil
+	}
+	s.policyMu.RUnlock()
+
+	// POC fallback: load policy from policy dump directory so APD restarts
+	// do not lose policies that were previously pushed.
+	policy, err := s.loadPolicyByItemIDFromDump(itemID, now)
+	if err != nil {
+		return nil, fmt.Errorf("policy for itemId %q not found", itemID)
+	}
+
+	s.policyMu.Lock()
+	s.policies[policy.PolicyID] = policy
+	s.policyMu.Unlock()
+
+	return policy, nil
+}
+
+func (s *AccessRequestService) loadPolicyByItemIDFromDump(itemID string, now time.Time) (*domain.Policy, error) {
+	dir := os.Getenv("APD_POLICY_DUMP_DIR")
+	if dir == "" {
+		dir = "policies"
+	}
+
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil, err
+	}
+
+	var best *domain.Policy
+	var bestIssuedAt time.Time
+
+	for _, ent := range entries {
+		if ent == nil || ent.IsDir() {
+			continue
+		}
+		if filepath.Ext(ent.Name()) != ".json" {
+			continue
+		}
+
+		info, err := ent.Info()
+		if err != nil {
+			continue
+		}
+
+		b, err := os.ReadFile(filepath.Join(dir, ent.Name()))
+		if err != nil {
+			continue
+		}
+
+		var body domain.ReceivePolicyBody
+		if err := json.Unmarshal(b, &body); err != nil {
+			continue
+		}
+		if body.ItemID != itemID {
+			continue
+		}
+		if body.ExpiresAt != nil && body.ExpiresAt.Before(now) {
+			continue
+		}
+
+		issuedAt := info.ModTime()
+		if best == nil || issuedAt.After(bestIssuedAt) {
+			bestIssuedAt = issuedAt
+			best = &domain.Policy{
+				PolicyID:  body.PolicyID,
+				ItemID:    body.ItemID,
+				IssuedBy:  body.IssuedBy,
+				Rules:     body.Rules,
+				IssuedAt:  issuedAt,
+				ExpiresAt: body.ExpiresAt,
+			}
+		}
+	}
+
+	if best == nil {
+		return nil, os.ErrNotExist
+	}
+
+	return best, nil
 }
 
 // ---------------------------------------------------------------------------

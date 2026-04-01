@@ -1,0 +1,23 @@
+{
+  "policyId": "policy-5306669f-b96d-4445-a9dd-2a8a94a940ae",
+  "itemId": "ds-2",
+  "issuedBy": "test3",
+  "rules": {
+    "accessLevel": "read",
+    "allowedOrg": {
+      "emailDomain": "@datakaveri.org",
+      "id": "datakaveri"
+    },
+    "application": {
+      "id": "app-1",
+      "name": "Model 1 (Risk Prediction)"
+    },
+    "dataset": {
+      "id": "ds-2",
+      "name": "Dataset B (Vitals)"
+    },
+    "notes": "",
+    "purpose": "research"
+  },
+  "expiresAt": "2026-03-27T00:00:00Z"
+}

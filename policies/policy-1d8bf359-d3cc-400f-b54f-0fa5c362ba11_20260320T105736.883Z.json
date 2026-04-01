@@ -1,0 +1,23 @@
+{
+  "policyId": "policy-1d8bf359-d3cc-400f-b54f-0fa5c362ba11",
+  "itemId": "ds-3",
+  "issuedBy": "test3",
+  "rules": {
+    "accessLevel": "read",
+    "allowedOrg": {
+      "emailDomain": "@datakaveri.org",
+      "id": "datakaveri"
+    },
+    "application": {
+      "id": "app-1",
+      "name": "Model 1 (Risk Prediction)"
+    },
+    "dataset": {
+      "id": "ds-3",
+      "name": "Dataset C (Lab Results)"
+    },
+    "notes": "",
+    "purpose": "research"
+  },
+  "expiresAt": "2026-04-10T00:00:00Z"
+}

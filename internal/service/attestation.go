@@ -139,7 +139,10 @@ func (s *AttestationService) Verify(
 
 	// 8. Extract TEE ephemeral EC public key from report_data
 	//    Convention: report_data[0:65] = uncompressed EC P-256 public key (04 || X || Y)
-	teePublicKeyPEM, err = ecPublicKeyToPEM(parsed.ReportData[:65])
+	rawPub := make([]byte, 65)
+	rawPub[0] = 0x04
+	copy(rawPub[1:], parsed.ReportData[:])
+	teePublicKeyPEM, err = ecPublicKeyToPEM(rawPub)
 	if err != nil {
 		return "", nil, fmt.Errorf("extract TEE public key from report_data: %w", err)
 	}
@@ -197,14 +200,14 @@ func (s *AttestationService) verifyReportSignature(rawReport []byte, vcekCertPEM
 	sigBytes := rawReport[snpSignatureOff : snpSignatureOff+96] // r(48) + s(48)
 
 	r := new(big.Int).SetBytes(sigBytes[:48])
-	s := new(big.Int).SetBytes(sigBytes[48:96])
+	sigS := new(big.Int).SetBytes(sigBytes[48:96])
 
 	// SHA-384 digest of the signed portion
 	h := sha512.New384()
 	h.Write(signedPart)
 	digest := h.Sum(nil)
 
-	if !ecdsa.Verify(ecPub, digest, r, s) {
+	if !ecdsa.Verify(ecPub, digest, r, sigS) {
 		return fmt.Errorf("ECDSA signature verification failed")
 	}
 	return nil

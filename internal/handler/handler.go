@@ -1,10 +1,15 @@
 package handler
 
 import (
+	"bytes"
 	"encoding/json"
 	"net/http"
+	"os"
+	"path/filepath"
+	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 
 	"github.com/cdpg/dx/apd-go/internal/domain"
 	"github.com/cdpg/dx/apd-go/internal/middleware"
@@ -32,6 +37,28 @@ func (h *Handler) ReceivePolicy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	func() {
+		b, err := json.MarshalIndent(body, "", "  ")
+		if err != nil {
+			return
+		}
+		dir := os.Getenv("APD_POLICY_DUMP_DIR")
+		if dir == "" {
+			dir = "policies"
+		}
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			return
+		}
+
+		ts := time.Now().UTC().Format("20060102T150405.000Z0700")
+		name := body.PolicyID
+		if name == "" {
+			name = uuid.NewString()
+		}
+		filePath := filepath.Join(dir, name+"_"+ts+".json")
+		_ = os.WriteFile(filePath, append(bytes.TrimSpace(b), '\n'), 0o644)
+	}()
+
 	policy, err := h.accessReq.ReceivePolicy(r.Context(), body)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
@@ -53,6 +80,17 @@ func (h *Handler) GetPolicy(w http.ResponseWriter, r *http.Request) {
 	policyID := chi.URLParam(r, "policyId")
 
 	policy, err := h.accessReq.GetPolicy(r.Context(), policyID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, domain.APIResponse{Status: "success", Data: policy})
+}
+
+func (h *Handler) GetPolicyByItemID(w http.ResponseWriter, r *http.Request) {
+	itemID := chi.URLParam(r, "itemId")
+
+	policy, err := h.accessReq.GetPolicyByItemID(r.Context(), itemID)
 	if err != nil {
 		writeError(w, http.StatusNotFound, err.Error())
 		return
