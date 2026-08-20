@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+
+	"github.com/joho/godotenv"
 )
 
 type Config struct {
@@ -14,6 +16,9 @@ type Config struct {
 	TEE      TEEConfig
 	AMD      AMDConfig
 	APD      APDConfig
+	// FormsPushToken guards /api/v1/forms/*: shared secret aaa sends as
+	// X-Forms-Push-Token when forwarding form writes. Empty disables the check.
+	FormsPushToken string
 }
 
 type ServerConfig struct {
@@ -79,6 +84,14 @@ type APDConfig struct {
 	SigningKeyPath string
 }
 
+// LoadEnv loads the service's own .env with override semantics, so this
+// service's values win over any inherited shell variables (e.g. a sibling
+// P3DX service's exported DB_PASSWORD). A missing .env is non-fatal — env may
+// be set entirely by the launcher.
+func LoadEnv() {
+	_ = godotenv.Overload(".env")
+}
+
 func Load() (*Config, error) {
 	cfg := &Config{
 		Server: ServerConfig{
@@ -120,6 +133,7 @@ func Load() (*Config, error) {
 		APD: APDConfig{
 			SigningKeyPath: mustEnv("APD_SIGNING_KEY_PATH"),
 		},
+		FormsPushToken: os.Getenv("FORMS_PUSH_TOKEN"),
 	}
 	return cfg, nil
 }

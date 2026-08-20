@@ -91,6 +91,11 @@ EMAIL_FROM=apd@example.com
 AMD_ARK_CERT_PATH=./keys/ark.pem   # ARK certificate for AMD chain-of-trust verification
 AMD_SKIP_CHAIN_VERIFY=false         # Set true in dev/test to skip AMD cert chain
 AMD_ALLOWED_POLICY=0                # Acceptable AMD guest policy bitmask
+
+# Optional: shared secret aaa must send as X-Forms-Push-Token on
+# /api/v1/forms/* (FL form submissions storage). Left unset, the check is
+# skipped — fine for local dev, not for production.
+FORMS_PUSH_TOKEN=
 ```
 
 ### Run

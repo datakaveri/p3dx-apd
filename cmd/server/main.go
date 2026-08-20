@@ -19,6 +19,7 @@ import (
 )
 
 func main() {
+	config.LoadEnv()
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatalf("load config: %v", err)
@@ -42,6 +43,9 @@ func main() {
 	// ---------------------------------------------------------------------------
 	accessRequestRepo := repository.NewAccessRequestRepo(pool)
 	consentTokenRepo := repository.NewConsentTokenRepo(pool)
+	formSubmissionRepo := repository.NewFormSubmissionRepo(pool)
+	providerFormRepo := repository.NewProviderFormRepo(pool)
+	policyRepo := repository.NewPolicyRepo(pool)
 
 	// ---------------------------------------------------------------------------
 	// Services
@@ -66,19 +70,22 @@ func main() {
 		attestSvc,
 		consentSvc,
 		emailSvc,
+		policyRepo,
 	)
+	formsSvc := service.NewFormsService(formSubmissionRepo, providerFormRepo)
 
 	// ---------------------------------------------------------------------------
 	// Handlers & Router
 	// ---------------------------------------------------------------------------
 	h := handler.New(accessReqSvc)
+	fh := handler.NewForms(formsSvc)
 
 	jwtMW, err := middleware.NewJWTMiddleware(cfg.JWT.PublicKeyPath)
 	if err != nil {
 		log.Fatalf("init JWT middleware: %v", err)
 	}
 
-	mux := router.New(h, jwtMW)
+	mux := router.New(h, fh, jwtMW, cfg.FormsPushToken)
 
 	// ---------------------------------------------------------------------------
 	// HTTP Server with graceful shutdown

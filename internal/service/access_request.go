@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -25,8 +24,7 @@ type AccessRequestService struct {
 	email   *EmailService
 
 	// Phase 0: policies received from ConMan, keyed by policyId
-	policyMu sync.RWMutex
-	policies map[string]*domain.Policy
+	policies *repository.PolicyRepo
 }
 
 func NewAccessRequestService(
@@ -35,6 +33,7 @@ func NewAccessRequestService(
 	attest *AttestationService,
 	consent *ConsentService,
 	email *EmailService,
+	policies *repository.PolicyRepo,
 ) *AccessRequestService {
 	return &AccessRequestService{
 		repo:     repo,
@@ -42,7 +41,7 @@ func NewAccessRequestService(
 		attest:   attest,
 		consent:  consent,
 		email:    email,
-		policies: make(map[string]*domain.Policy),
+		policies: policies,
 	}
 }
 
@@ -71,20 +70,20 @@ func (s *AccessRequestService) ReceivePolicy(ctx context.Context, body domain.Re
 		ExpiresAt: body.ExpiresAt,
 	}
 
-	s.policyMu.Lock()
-	s.policies[policy.PolicyID] = policy
-	s.policyMu.Unlock()
+	if err := s.policies.Upsert(ctx, policy); err != nil {
+		return nil, err
+	}
 
 	return policy, nil
 }
 
 // GetPolicy returns the policy for the given policyId, called by the TOP.
 func (s *AccessRequestService) GetPolicy(ctx context.Context, policyID string) (*domain.Policy, error) {
-	s.policyMu.RLock()
-	policy, ok := s.policies[policyID]
-	s.policyMu.RUnlock()
-
-	if !ok {
+	policy, err := s.policies.GetByID(ctx, policyID)
+	if err != nil {
+		return nil, err
+	}
+	if policy == nil {
 		return nil, fmt.Errorf("policy %q not found", policyID)
 	}
 	if policy.ExpiresAt != nil && policy.ExpiresAt.Before(time.Now()) {
@@ -100,34 +99,33 @@ func (s *AccessRequestService) GetPolicyByItemID(ctx context.Context, itemID str
 
 	now := time.Now()
 
-	s.policyMu.RLock()
-	for _, policy := range s.policies {
-		if policy == nil {
-			continue
-		}
-		if policy.ItemID != itemID {
-			continue
-		}
-		if policy.ExpiresAt != nil && policy.ExpiresAt.Before(now) {
-			continue
-		}
-		s.policyMu.RUnlock()
+	policy, err := s.policies.GetLatestByItemID(ctx, itemID, now)
+	if err != nil {
+		return nil, err
+	}
+	if policy != nil {
 		return policy, nil
 	}
-	s.policyMu.RUnlock()
 
-	// POC fallback: load policy from policy dump directory so APD restarts
-	// do not lose policies that were previously pushed.
-	policy, err := s.loadPolicyByItemIDFromDump(itemID, now)
+	// Legacy fallback: load policy from the on-disk dump directory (from
+	// before policies were persisted to the DB) and migrate it in.
+	policy, err = s.loadPolicyByItemIDFromDump(itemID, now)
 	if err != nil {
 		return nil, fmt.Errorf("policy for itemId %q not found", itemID)
 	}
 
-	s.policyMu.Lock()
-	s.policies[policy.PolicyID] = policy
-	s.policyMu.Unlock()
+	if err := s.policies.Upsert(ctx, policy); err != nil {
+		return nil, err
+	}
 
 	return policy, nil
+}
+
+// ListPolicyDatasetNames returns the distinct dataset names that have an
+// access policy set (via the "Set Policy" page), for use by services (like
+// SMPC's dataset picker) that need to know which datasets are available.
+func (s *AccessRequestService) ListPolicyDatasetNames(ctx context.Context) ([]string, error) {
+	return s.policies.ListDatasetNames(ctx)
 }
 
 func (s *AccessRequestService) loadPolicyByItemIDFromDump(itemID string, now time.Time) (*domain.Policy, error) {
