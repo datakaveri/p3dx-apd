@@ -62,12 +62,15 @@ func (s *AccessRequestService) ReceivePolicy(ctx context.Context, body domain.Re
 	}
 
 	policy := &domain.Policy{
-		PolicyID:  body.PolicyID,
-		ItemID:    body.ItemID,
-		IssuedBy:  body.IssuedBy,
-		Rules:     body.Rules,
-		IssuedAt:  time.Now(),
-		ExpiresAt: body.ExpiresAt,
+		PolicyID:      body.PolicyID,
+		ItemID:        body.ItemID,
+		IssuedBy:      body.IssuedBy,
+		ProviderID:    body.ProviderID,
+		ProviderEmail: body.ProviderEmail,
+		IsPrivate:     body.IsPrivate,
+		Rules:         body.Rules,
+		IssuedAt:      time.Now(),
+		ExpiresAt:     body.ExpiresAt,
 	}
 
 	if err := s.policies.Upsert(ctx, policy); err != nil {

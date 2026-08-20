@@ -245,12 +245,15 @@ CREATE INDEX idx_provider_forms_created ON provider_forms (created_at);
 -- ---------------------------------------------------------------------------
 
 CREATE TABLE policies (
-    policy_id   TEXT        PRIMARY KEY,
-    item_id     TEXT        NOT NULL,
-    issued_by   TEXT        NOT NULL,
-    rules       JSONB       NOT NULL DEFAULT '{}',
-    issued_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    expires_at  TIMESTAMPTZ
+    policy_id      TEXT        PRIMARY KEY,
+    item_id        TEXT        NOT NULL,
+    issued_by      TEXT        NOT NULL,
+    provider_id    TEXT,
+    provider_email TEXT,
+    is_private     BOOLEAN     NOT NULL DEFAULT FALSE,
+    rules          JSONB       NOT NULL DEFAULT '{}',
+    issued_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    expires_at     TIMESTAMPTZ
 );
 
 CREATE INDEX idx_policies_item_id ON policies (item_id);

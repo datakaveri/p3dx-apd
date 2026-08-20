@@ -20,7 +20,7 @@ func NewPolicyRepo(db *pgxpool.Pool) *PolicyRepo {
 	return &PolicyRepo{db: db}
 }
 
-const policyCols = `policy_id, item_id, issued_by, rules, issued_at, expires_at`
+const policyCols = `policy_id, item_id, issued_by, provider_id, provider_email, is_private, rules, issued_at, expires_at`
 
 func (r *PolicyRepo) Upsert(ctx context.Context, p *domain.Policy) error {
 	rules, err := json.Marshal(p.Rules)
@@ -28,11 +28,11 @@ func (r *PolicyRepo) Upsert(ctx context.Context, p *domain.Policy) error {
 		return err
 	}
 	_, err = r.db.Exec(ctx, `
-		INSERT INTO policies (policy_id, item_id, issued_by, rules, issued_at, expires_at)
-		VALUES ($1,$2,$3,$4,$5,$6)
+		INSERT INTO policies (policy_id, item_id, issued_by, provider_id, provider_email, is_private, rules, issued_at, expires_at)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
 		ON CONFLICT (policy_id) DO UPDATE SET
-			item_id=$2, issued_by=$3, rules=$4, issued_at=$5, expires_at=$6`,
-		p.PolicyID, p.ItemID, p.IssuedBy, rules, p.IssuedAt, p.ExpiresAt,
+			item_id=$2, issued_by=$3, provider_id=$4, provider_email=$5, is_private=$6, rules=$7, issued_at=$8, expires_at=$9`,
+		p.PolicyID, p.ItemID, p.IssuedBy, p.ProviderID, p.ProviderEmail, p.IsPrivate, rules, p.IssuedAt, p.ExpiresAt,
 	)
 	return err
 }
@@ -86,9 +86,16 @@ func (r *PolicyRepo) ListDatasetNames(ctx context.Context) ([]string, error) {
 func scanPolicy(row pgx.Row) (*domain.Policy, error) {
 	var p domain.Policy
 	var rulesRaw []byte
-	err := row.Scan(&p.PolicyID, &p.ItemID, &p.IssuedBy, &rulesRaw, &p.IssuedAt, &p.ExpiresAt)
+	var providerID, providerEmail *string
+	err := row.Scan(&p.PolicyID, &p.ItemID, &p.IssuedBy, &providerID, &providerEmail, &p.IsPrivate, &rulesRaw, &p.IssuedAt, &p.ExpiresAt)
 	if err != nil {
 		return nil, err
+	}
+	if providerID != nil {
+		p.ProviderID = *providerID
+	}
+	if providerEmail != nil {
+		p.ProviderEmail = *providerEmail
 	}
 	if len(rulesRaw) > 0 {
 		_ = json.Unmarshal(rulesRaw, &p.Rules)
