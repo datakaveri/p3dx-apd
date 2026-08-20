@@ -276,6 +276,7 @@ type Policy struct {
 	ItemID    string                 `json:"itemId"`
 	IssuedBy  string                 `json:"issuedBy"` // ConMan identity
 	Rules     map[string]interface{} `json:"rules"`
+	IsPrivate bool                   `json:"is_private"`
 	IssuedAt  time.Time              `json:"issuedAt"`
 	ExpiresAt *time.Time             `json:"expiresAt,omitempty"`
 }
@@ -285,5 +286,6 @@ type ReceivePolicyBody struct {
 	ItemID    string                 `json:"itemId"`
 	IssuedBy  string                 `json:"issuedBy"`
 	Rules     map[string]interface{} `json:"rules"`
+	IsPrivate bool                   `json:"is_private"`
 	ExpiresAt *time.Time             `json:"expiresAt,omitempty"`
 }

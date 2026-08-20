@@ -249,6 +249,7 @@ CREATE TABLE policies (
     item_id     TEXT        NOT NULL,
     issued_by   TEXT        NOT NULL,
     rules       JSONB       NOT NULL DEFAULT '{}',
+    is_private  BOOLEAN     NOT NULL DEFAULT false,
     issued_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     expires_at  TIMESTAMPTZ
 );

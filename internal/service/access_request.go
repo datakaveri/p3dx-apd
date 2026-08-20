@@ -66,6 +66,7 @@ func (s *AccessRequestService) ReceivePolicy(ctx context.Context, body domain.Re
 		ItemID:    body.ItemID,
 		IssuedBy:  body.IssuedBy,
 		Rules:     body.Rules,
+		IsPrivate: body.IsPrivate,
 		IssuedAt:  time.Now(),
 		ExpiresAt: body.ExpiresAt,
 	}
