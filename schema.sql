@@ -152,3 +152,105 @@ CREATE TABLE client_credentials (
     client_secret_hash TEXT NOT NULL,
     created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- ---------------------------------------------------------------------------
+-- FL form submissions
+--
+-- Store of record for FL output-owner form submissions, pushed here by aaa
+-- (formSubmissions.service.js) at creation time. One row per form_id — a
+-- re-submit for the same form_id overwrites the existing row in place.
+-- Soft-deleted (immudb-style tombstone) rather than hard-deleted so history
+-- isn't lost and reads can keep filtering on `deleted`.
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE form_submissions (
+    id                  TEXT        PRIMARY KEY,
+    form_id             TEXT        NOT NULL,
+    requested_by        TEXT        NOT NULL,
+    output_owner_id     TEXT        NOT NULL,
+
+    num_server_rounds   DOUBLE PRECISION,
+    fraction_evaluate   DOUBLE PRECISION,
+    local_epochs        DOUBLE PRECISION,
+    learning_rate       DOUBLE PRECISION,
+    batch_size          DOUBLE PRECISION,
+    model               TEXT,
+    framework           TEXT,
+    components          JSONB       NOT NULL DEFAULT '{}',
+
+    filled              BOOLEAN     NOT NULL DEFAULT TRUE,
+    requested_at        TIMESTAMPTZ NOT NULL,
+    filled_at           TIMESTAMPTZ NOT NULL,
+
+    selected_providers  JSONB       NOT NULL DEFAULT '[]',
+    ip_address          TEXT,
+    port                DOUBLE PRECISION,
+    ram_usage           DOUBLE PRECISION,
+
+    deleted             BOOLEAN     NOT NULL DEFAULT FALSE,
+    deleted_at          TIMESTAMPTZ,
+
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Only one live (non-deleted) row per form_id — mirrors the upsert-by-formId
+-- behavior this table replaces from the old immudb store.
+CREATE UNIQUE INDEX idx_form_submissions_form_id_live ON form_submissions (form_id) WHERE NOT deleted;
+CREATE INDEX idx_form_submissions_created ON form_submissions (created_at);
+
+CREATE TRIGGER trg_form_submissions_updated_at
+    BEFORE UPDATE ON form_submissions
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+-- ---------------------------------------------------------------------------
+-- FL data-provider forms
+--
+-- Store of record for data-provider forms, pushed here by aaa. Insert-only —
+-- unlike form_submissions there is no upsert-by-formId; every submit creates
+-- a new row.
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE provider_forms (
+    id                  TEXT        PRIMARY KEY,
+    form_id             TEXT,
+    data_owner_id       TEXT,
+    dataset_name        TEXT,
+
+    ram                 DOUBLE PRECISION,
+    memory_mb           DOUBLE PRECISION,
+    data_size_bytes     DOUBLE PRECISION,
+    data_resource_id    TEXT,
+    ip_address          TEXT,
+    port                DOUBLE PRECISION,
+    ram_usage           DOUBLE PRECISION,
+
+    filled              BOOLEAN     NOT NULL DEFAULT TRUE,
+    filled_at           TIMESTAMPTZ NOT NULL,
+    submitted_by        TEXT,
+
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_provider_forms_form_id ON provider_forms (form_id);
+CREATE INDEX idx_provider_forms_created ON provider_forms (created_at);
+
+-- ---------------------------------------------------------------------------
+-- Policies (Phase 0)
+--
+-- Access policies issued by the Contract Manager (ConMan)/data providers,
+-- keyed by policyId. TOP queries by itemId before accepting a workload
+-- contract. One row per policyId; querying by itemId returns the
+-- most-recently-issued, non-expired policy for that dataset.
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE policies (
+    policy_id   TEXT        PRIMARY KEY,
+    item_id     TEXT        NOT NULL,
+    issued_by   TEXT        NOT NULL,
+    rules       JSONB       NOT NULL DEFAULT '{}',
+    issued_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    expires_at  TIMESTAMPTZ
+);
+
+CREATE INDEX idx_policies_item_id ON policies (item_id);
