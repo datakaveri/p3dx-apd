@@ -21,12 +21,12 @@ func NewProviderFormRepo(db *pgxpool.Pool) *ProviderFormRepo {
 func (r *ProviderFormRepo) Insert(ctx context.Context, f *domain.ProviderForm) error {
 	_, err := r.db.Exec(ctx, `
 		INSERT INTO provider_forms (
-			id, form_id, data_owner_id, dataset_name, ram, memory_mb, data_size_bytes,
+			id, form_id, data_owner_id, dataset_name, dataset_location_url, ram, memory_mb, data_size_bytes,
 			data_resource_id, ip_address, port, ram_usage, filled, filled_at, submitted_by
 		) VALUES (
-			$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14
+			$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15
 		)`,
-		f.ID, f.FormID, f.DataOwnerID, f.DatasetName, f.RAM, f.MemoryMB, f.DataSizeBytes,
+		f.ID, f.FormID, f.DataOwnerID, f.DatasetName, f.DatasetLocationURL, f.RAM, f.MemoryMB, f.DataSizeBytes,
 		f.DataResourceID, f.IPAddress, f.Port, f.RAMUsage, f.Filled, f.FilledAt, f.SubmittedBy,
 	)
 	return err

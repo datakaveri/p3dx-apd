@@ -61,13 +61,26 @@ func (s *AccessRequestService) ReceivePolicy(ctx context.Context, body domain.Re
 		return nil, errors.New("issuedBy is required")
 	}
 
+	datasetID := body.DatasetID
+	if datasetID == "" {
+		datasetID = body.ItemID
+	}
+	providerID := body.ProviderID
+	if providerID == "" {
+		providerID = body.IssuedBy
+	}
+
 	policy := &domain.Policy{
-		PolicyID:  body.PolicyID,
-		ItemID:    body.ItemID,
-		IssuedBy:  body.IssuedBy,
-		Rules:     body.Rules,
-		IssuedAt:  time.Now(),
-		ExpiresAt: body.ExpiresAt,
+		PolicyID:      body.PolicyID,
+		ItemID:        body.ItemID,
+		IssuedBy:      body.IssuedBy,
+		DatasetID:     datasetID,
+		ProviderID:    providerID,
+		ProviderEmail: body.ProviderEmail,
+		IsPrivate:     body.IsPrivate,
+		Rules:         body.Rules,
+		IssuedAt:      time.Now(),
+		ExpiresAt:     body.ExpiresAt,
 	}
 
 	if err := s.policies.Upsert(ctx, policy); err != nil {
@@ -174,13 +187,25 @@ func (s *AccessRequestService) loadPolicyByItemIDFromDump(itemID string, now tim
 		issuedAt := info.ModTime()
 		if best == nil || issuedAt.After(bestIssuedAt) {
 			bestIssuedAt = issuedAt
+			datasetID := body.DatasetID
+			if datasetID == "" {
+				datasetID = body.ItemID
+			}
+			providerID := body.ProviderID
+			if providerID == "" {
+				providerID = body.IssuedBy
+			}
 			best = &domain.Policy{
-				PolicyID:  body.PolicyID,
-				ItemID:    body.ItemID,
-				IssuedBy:  body.IssuedBy,
-				Rules:     body.Rules,
-				IssuedAt:  issuedAt,
-				ExpiresAt: body.ExpiresAt,
+				PolicyID:      body.PolicyID,
+				ItemID:        body.ItemID,
+				IssuedBy:      body.IssuedBy,
+				DatasetID:     datasetID,
+				ProviderID:    providerID,
+				ProviderEmail: body.ProviderEmail,
+				IsPrivate:     body.IsPrivate,
+				Rules:         body.Rules,
+				IssuedAt:      issuedAt,
+				ExpiresAt:     body.ExpiresAt,
 			}
 		}
 	}
@@ -202,6 +227,7 @@ func (s *AccessRequestService) Create(
 	body domain.CreateAccessRequestBody,
 	providerID string, // resolved from catalogue
 	assetName, assetType string,
+	consumerEmail string,
 ) (*domain.AccessRequest, error) {
 
 	if consumerID == providerID {
@@ -238,6 +264,13 @@ func (s *AccessRequestService) Create(
 	// Temporary behavior: auto-approve all new requests.
 	if err := s.approveEveryRequest(ctx, req.ID); err != nil {
 		return nil, fmt.Errorf("auto-approve request: %w", err)
+	}
+
+	// If this dataset is under a private policy, let the provider know
+	// someone is accessing it.
+	if policy, err := s.policies.GetLatestByItemID(ctx, body.ItemID, time.Now()); err == nil &&
+		policy != nil && policy.IsPrivate && policy.ProviderEmail != "" {
+		_ = s.email.SendPrivateDatasetAccessNotification(policy.ProviderEmail, consumerEmail, assetName, req.ID)
 	}
 
 	return s.repo.GetByID(ctx, req.ID)

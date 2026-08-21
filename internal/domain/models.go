@@ -272,18 +272,26 @@ type APIResponse struct {
 // It is stored by the APD and served to the Trusted Orchestrator Platform (TOP)
 // before any access request is created.
 type Policy struct {
-	PolicyID  string                 `json:"policyId"`
-	ItemID    string                 `json:"itemId"`
-	IssuedBy  string                 `json:"issuedBy"` // ConMan identity
-	Rules     map[string]interface{} `json:"rules"`
-	IssuedAt  time.Time              `json:"issuedAt"`
-	ExpiresAt *time.Time             `json:"expiresAt,omitempty"`
+	PolicyID      string                 `json:"policyId"`
+	ItemID        string                 `json:"itemId"`
+	IssuedBy      string                 `json:"issuedBy"` // ConMan identity
+	DatasetID     string                 `json:"dataset_id"`
+	ProviderID    string                 `json:"provider_id"`
+	ProviderEmail string                 `json:"provider_email"`
+	IsPrivate     bool                   `json:"is_private"`
+	Rules         map[string]interface{} `json:"rules"`
+	IssuedAt      time.Time              `json:"issuedAt"`
+	ExpiresAt     *time.Time             `json:"expiresAt,omitempty"`
 }
 
 type ReceivePolicyBody struct {
-	PolicyID  string                 `json:"policyId"`
-	ItemID    string                 `json:"itemId"`
-	IssuedBy  string                 `json:"issuedBy"`
-	Rules     map[string]interface{} `json:"rules"`
-	ExpiresAt *time.Time             `json:"expiresAt,omitempty"`
+	PolicyID      string                 `json:"policyId"`
+	ItemID        string                 `json:"itemId"`
+	IssuedBy      string                 `json:"issuedBy"`
+	DatasetID     string                 `json:"dataset_id"`
+	ProviderID    string                 `json:"provider_id"`
+	ProviderEmail string                 `json:"provider_email"`
+	IsPrivate     bool                   `json:"is_private"`
+	Rules         map[string]interface{} `json:"rules"`
+	ExpiresAt     *time.Time             `json:"expiresAt,omitempty"`
 }

@@ -140,6 +140,7 @@ func (h *Handler) CreateAccessRequest(w http.ResponseWriter, r *http.Request) {
 		body.ProviderID,
 		body.AssetName,
 		body.AssetType,
+		middleware.EmailFromCtx(r.Context()),
 	)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
