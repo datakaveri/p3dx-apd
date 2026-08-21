@@ -20,7 +20,7 @@ func NewPolicyRepo(db *pgxpool.Pool) *PolicyRepo {
 	return &PolicyRepo{db: db}
 }
 
-const policyCols = `policy_id, item_id, issued_by, rules, is_private, issued_at, expires_at`
+const policyCols = `policy_id, item_id, issued_by, dataset_id, provider_id, provider_email, is_private, rules, issued_at, expires_at`
 
 func (r *PolicyRepo) Upsert(ctx context.Context, p *domain.Policy) error {
 	rules, err := json.Marshal(p.Rules)
@@ -28,11 +28,11 @@ func (r *PolicyRepo) Upsert(ctx context.Context, p *domain.Policy) error {
 		return err
 	}
 	_, err = r.db.Exec(ctx, `
-		INSERT INTO policies (policy_id, item_id, issued_by, rules, is_private, issued_at, expires_at)
-		VALUES ($1,$2,$3,$4,$5,$6,$7)
+		INSERT INTO policies (policy_id, item_id, issued_by, dataset_id, provider_id, provider_email, is_private, rules, issued_at, expires_at)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
 		ON CONFLICT (policy_id) DO UPDATE SET
-			item_id=$2, issued_by=$3, rules=$4, is_private=$5, issued_at=$6, expires_at=$7`,
-		p.PolicyID, p.ItemID, p.IssuedBy, rules, p.IsPrivate, p.IssuedAt, p.ExpiresAt,
+			item_id=$2, issued_by=$3, dataset_id=$4, provider_id=$5, provider_email=$6, is_private=$7, rules=$8, issued_at=$9, expires_at=$10`,
+		p.PolicyID, p.ItemID, p.IssuedBy, p.DatasetID, p.ProviderID, p.ProviderEmail, p.IsPrivate, rules, p.IssuedAt, p.ExpiresAt,
 	)
 	return err
 }
@@ -86,7 +86,7 @@ func (r *PolicyRepo) ListDatasetNames(ctx context.Context) ([]string, error) {
 func scanPolicy(row pgx.Row) (*domain.Policy, error) {
 	var p domain.Policy
 	var rulesRaw []byte
-	err := row.Scan(&p.PolicyID, &p.ItemID, &p.IssuedBy, &rulesRaw, &p.IsPrivate, &p.IssuedAt, &p.ExpiresAt)
+	err := row.Scan(&p.PolicyID, &p.ItemID, &p.IssuedBy, &p.DatasetID, &p.ProviderID, &p.ProviderEmail, &p.IsPrivate, &rulesRaw, &p.IssuedAt, &p.ExpiresAt)
 	if err != nil {
 		return nil, err
 	}

@@ -110,6 +110,22 @@ If you believe this is an error, please contact the provider directly.
 	return s.send(consumerEmail, subject, body)
 }
 
+// SendPrivateDatasetAccessNotification notifies the provider that a consumer
+// has just created an access request against one of their private datasets.
+func (s *EmailService) SendPrivateDatasetAccessNotification(providerEmail, consumerEmail, assetName, requestID string) error {
+	subject := fmt.Sprintf("[DX APD] Your Private Dataset Is Being Accessed – %s", assetName)
+	body := fmt.Sprintf(`A consumer has just created an access request for your private dataset.
+
+Consumer  : %s
+Dataset   : %s
+Request ID: %s
+
+This is an informational notice — no action is required unless you did not expect this access.
+
+— DX Access Policy Domain`, consumerEmail, assetName, requestID)
+	return s.send(providerEmail, subject, body)
+}
+
 func (s *EmailService) send(to, subject, body string) error {
 	if !s.cfg.Enabled {
 		return nil

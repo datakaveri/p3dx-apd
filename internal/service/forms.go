@@ -97,20 +97,21 @@ func (s *FormsService) CreateProviderForm(ctx context.Context, body domain.Creat
 	}
 
 	form := &domain.ProviderForm{
-		ID:             "dpf-" + uuid.NewString(),
-		FormID:         strOrNull(body.FormID),
-		DataOwnerID:    strOrNull(body.DataOwnerID),
-		DatasetName:    strOrNull(body.DatasetName),
-		RAM:            numOrNull(body.RAM),
-		MemoryMB:       numOrNull(body.MemoryMB),
-		DataSizeBytes:  numOrNull(body.DataSizeBytes),
-		DataResourceID: strOrNull(body.DataResourceID),
-		IPAddress:      strOrNull(body.IPAddress),
-		Port:           numOrNull(body.Port),
-		RAMUsage:       numOrNull(body.RAMUsage),
-		Filled:         true,
-		FilledAt:       filledAt,
-		SubmittedBy:    strOrNull(body.SubmittedBy),
+		ID:                 "dpf-" + uuid.NewString(),
+		FormID:             strOrNull(body.FormID),
+		DataOwnerID:        strOrNull(body.DataOwnerID),
+		DatasetName:        strOrNull(body.DatasetName),
+		DatasetLocationURL: strOrNull(body.DatasetLocationURL),
+		RAM:                numOrNull(body.RAM),
+		MemoryMB:           numOrNull(body.MemoryMB),
+		DataSizeBytes:      numOrNull(body.DataSizeBytes),
+		DataResourceID:     strOrNull(body.DataResourceID),
+		IPAddress:          strOrNull(body.IPAddress),
+		Port:               numOrNull(body.Port),
+		RAMUsage:           numOrNull(body.RAMUsage),
+		Filled:             true,
+		FilledAt:           filledAt,
+		SubmittedBy:        strOrNull(body.SubmittedBy),
 	}
 
 	if err := s.provider.Insert(ctx, form); err != nil {

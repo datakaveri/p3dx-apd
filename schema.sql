@@ -216,6 +216,7 @@ CREATE TABLE provider_forms (
     form_id             TEXT,
     data_owner_id       TEXT,
     dataset_name        TEXT,
+    dataset_location_url TEXT,
 
     ram                 DOUBLE PRECISION,
     memory_mb           DOUBLE PRECISION,
@@ -245,13 +246,16 @@ CREATE INDEX idx_provider_forms_created ON provider_forms (created_at);
 -- ---------------------------------------------------------------------------
 
 CREATE TABLE policies (
-    policy_id   TEXT        PRIMARY KEY,
-    item_id     TEXT        NOT NULL,
-    issued_by   TEXT        NOT NULL,
-    rules       JSONB       NOT NULL DEFAULT '{}',
-    is_private  BOOLEAN     NOT NULL DEFAULT false,
-    issued_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    expires_at  TIMESTAMPTZ
+    policy_id       TEXT        PRIMARY KEY,
+    item_id         TEXT        NOT NULL,
+    issued_by       TEXT        NOT NULL,
+    dataset_id      TEXT        NOT NULL DEFAULT '',
+    provider_id     TEXT        NOT NULL DEFAULT '',
+    provider_email  TEXT        NOT NULL DEFAULT '',
+    is_private      BOOLEAN     NOT NULL DEFAULT FALSE,
+    rules           JSONB       NOT NULL DEFAULT '{}',
+    issued_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    expires_at      TIMESTAMPTZ
 );
 
 CREATE INDEX idx_policies_item_id ON policies (item_id);
