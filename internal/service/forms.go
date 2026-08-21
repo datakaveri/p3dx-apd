@@ -124,6 +124,10 @@ func (s *FormsService) ListDatasetNames(ctx context.Context) ([]string, error) {
 	return s.provider.ListDatasetNames(ctx)
 }
 
+func (s *FormsService) ListProviderForms(ctx context.Context, datasetName string) ([]*domain.ProviderForm, error) {
+	return s.provider.ListByDatasetName(ctx, datasetName)
+}
+
 // numOrNull mirrors the aaa "value || null" coercion: undefined, null, "",
 // non-numeric strings, and 0 all become nil.
 func numOrNull(v interface{}) *float64 {

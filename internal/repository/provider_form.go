@@ -32,6 +32,37 @@ func (r *ProviderFormRepo) Insert(ctx context.Context, f *domain.ProviderForm) e
 	return err
 }
 
+const providerFormCols = `id, form_id, data_owner_id, dataset_name, ram, memory_mb, data_size_bytes,
+	data_resource_id, ip_address, port, ram_usage, filled, filled_at, submitted_by, created_at`
+
+// ListByDatasetName returns provider forms, most-recently-submitted first.
+// An empty datasetName returns every provider form; otherwise it matches
+// dataset_name case-insensitively.
+func (r *ProviderFormRepo) ListByDatasetName(ctx context.Context, datasetName string) ([]*domain.ProviderForm, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT `+providerFormCols+`
+		FROM provider_forms
+		WHERE $1 = '' OR LOWER(dataset_name) = LOWER($1)
+		ORDER BY created_at DESC`, datasetName)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	forms := []*domain.ProviderForm{}
+	for rows.Next() {
+		var f domain.ProviderForm
+		if err := rows.Scan(
+			&f.ID, &f.FormID, &f.DataOwnerID, &f.DatasetName, &f.RAM, &f.MemoryMB, &f.DataSizeBytes,
+			&f.DataResourceID, &f.IPAddress, &f.Port, &f.RAMUsage, &f.Filled, &f.FilledAt, &f.SubmittedBy, &f.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		forms = append(forms, &f)
+	}
+	return forms, rows.Err()
+}
+
 // ListDatasetNames returns the distinct, non-empty dataset names submitted by
 // data providers, most-recently-submitted first.
 func (r *ProviderFormRepo) ListDatasetNames(ctx context.Context) ([]string, error) {

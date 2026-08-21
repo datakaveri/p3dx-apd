@@ -55,6 +55,7 @@ func New(h *handler.Handler, fh *handler.FormsHandler, jwtMW *middleware.JWTMidd
 		r.Get("/submissions/{id}", fh.GetSubmission)
 		r.Delete("/submissions/{id}", fh.DeleteSubmission)
 		r.Post("/provider-forms", fh.CreateProviderForm)
+		r.Get("/provider-forms", fh.ListProviderForms)
 		r.Get("/dataset-names", fh.ListDatasetNames)
 	})
 

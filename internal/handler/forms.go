@@ -95,6 +95,18 @@ func (h *FormsHandler) CreateProviderForm(w http.ResponseWriter, r *http.Request
 	writeJSON(w, http.StatusCreated, domain.APIResponse{Status: "success", Data: form})
 }
 
+// GET /api/v1/forms/provider-forms?dataset_name=...
+func (h *FormsHandler) ListProviderForms(w http.ResponseWriter, r *http.Request) {
+	datasetName := r.URL.Query().Get("dataset_name")
+
+	forms, err := h.forms.ListProviderForms(r.Context(), datasetName)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, domain.APIResponse{Status: "success", Data: forms})
+}
+
 // GET /api/v1/forms/dataset-names
 func (h *FormsHandler) ListDatasetNames(w http.ResponseWriter, r *http.Request) {
 	names, err := h.forms.ListDatasetNames(r.Context())
