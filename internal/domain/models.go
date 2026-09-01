@@ -279,6 +279,7 @@ type Policy struct {
 	ProviderID    string                 `json:"provider_id"`
 	ProviderEmail string                 `json:"provider_email"`
 	IsPrivate     bool                   `json:"is_private"`
+	DataURL       string                 `json:"data_url"`
 	Rules         map[string]interface{} `json:"rules"`
 	IssuedAt      time.Time              `json:"issuedAt"`
 	ExpiresAt     *time.Time             `json:"expiresAt,omitempty"`
@@ -292,6 +293,7 @@ type ReceivePolicyBody struct {
 	ProviderID    string                 `json:"provider_id"`
 	ProviderEmail string                 `json:"provider_email"`
 	IsPrivate     bool                   `json:"is_private"`
+	DataURL       string                 `json:"data_url"`
 	Rules         map[string]interface{} `json:"rules"`
 	ExpiresAt     *time.Time             `json:"expiresAt,omitempty"`
 }

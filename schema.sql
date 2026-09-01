@@ -253,6 +253,7 @@ CREATE TABLE policies (
     provider_id     TEXT        NOT NULL DEFAULT '',
     provider_email  TEXT        NOT NULL DEFAULT '',
     is_private      BOOLEAN     NOT NULL DEFAULT FALSE,
+    data_url        TEXT        NOT NULL DEFAULT '',
     rules           JSONB       NOT NULL DEFAULT '{}',
     issued_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     expires_at      TIMESTAMPTZ

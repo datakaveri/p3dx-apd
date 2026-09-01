@@ -78,6 +78,7 @@ func (s *AccessRequestService) ReceivePolicy(ctx context.Context, body domain.Re
 		ProviderID:    providerID,
 		ProviderEmail: body.ProviderEmail,
 		IsPrivate:     body.IsPrivate,
+		DataURL:       body.DataURL,
 		Rules:         body.Rules,
 		IssuedAt:      time.Now(),
 		ExpiresAt:     body.ExpiresAt,
