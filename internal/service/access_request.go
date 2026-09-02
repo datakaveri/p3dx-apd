@@ -135,11 +135,13 @@ func (s *AccessRequestService) GetPolicyByItemID(ctx context.Context, itemID str
 	return policy, nil
 }
 
-// ListPolicyDatasetNames returns the distinct dataset names that have an
-// access policy set (via the "Set Policy" page), for use by services (like
-// SMPC's dataset picker) that need to know which datasets are available.
-func (s *AccessRequestService) ListPolicyDatasetNames(ctx context.Context) ([]string, error) {
-	return s.policies.ListDatasetNames(ctx)
+// ListPolicyDatasets returns the dataset catalogue — {item_id, name} for
+// every dataset that has an access policy set (via the "Set Policy" page),
+// for use by services (like SMPC's dataset picker) that need to know which
+// datasets are available. The item_id is included (not just the display
+// name) so a caller can round-trip it into GetPolicyByItemID.
+func (s *AccessRequestService) ListPolicyDatasets(ctx context.Context) ([]domain.DatasetSummary, error) {
+	return s.policies.ListDatasetSummaries(ctx)
 }
 
 func (s *AccessRequestService) loadPolicyByItemIDFromDump(itemID string, now time.Time) (*domain.Policy, error) {
@@ -204,6 +206,7 @@ func (s *AccessRequestService) loadPolicyByItemIDFromDump(itemID string, now tim
 				ProviderID:    providerID,
 				ProviderEmail: body.ProviderEmail,
 				IsPrivate:     body.IsPrivate,
+				DataURL:       body.DataURL,
 				Rules:         body.Rules,
 				IssuedAt:      issuedAt,
 				ExpiresAt:     body.ExpiresAt,

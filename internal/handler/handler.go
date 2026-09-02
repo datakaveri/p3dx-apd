@@ -87,14 +87,15 @@ func (h *Handler) GetPolicy(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, domain.APIResponse{Status: "success", Data: policy})
 }
 
-// GET /api/v1/policy/datasets — distinct dataset names that have a policy set.
-func (h *Handler) ListPolicyDatasetNames(w http.ResponseWriter, r *http.Request) {
-	names, err := h.accessReq.ListPolicyDatasetNames(r.Context())
+// GET /api/v1/policy/datasets — the dataset catalogue: {item_id, name} for
+// every dataset that has a policy set.
+func (h *Handler) ListPolicyDatasets(w http.ResponseWriter, r *http.Request) {
+	datasets, err := h.accessReq.ListPolicyDatasets(r.Context())
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	writeJSON(w, http.StatusOK, domain.APIResponse{Status: "success", Data: names})
+	writeJSON(w, http.StatusOK, domain.APIResponse{Status: "success", Data: datasets})
 }
 
 func (h *Handler) GetPolicyByItemID(w http.ResponseWriter, r *http.Request) {
