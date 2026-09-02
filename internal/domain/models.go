@@ -298,10 +298,21 @@ type ReceivePolicyBody struct {
 	ExpiresAt     *time.Time             `json:"expiresAt,omitempty"`
 }
 
+// DatasetSummary is one row of the dataset catalogue exposed via
+// GET /api/v1/policy/datasets — the dataset-picker's {id, name} pair, so
+// callers can send the real item_id to a by-item policy lookup while still
+// showing the human-readable name. Without the id, a caller has only the
+// display name to work with, and a by-item lookup (GetPolicyByItemID) keys
+// strictly on item_id — sending the name there always misses.
+type DatasetSummary struct {
+	ItemID string `json:"item_id"`
+	Name   string `json:"name"`
+}
+
 // InfraSummary is one row of the Infrastructure Catalogue (InfraCat) — a
 // lightweight projection of an infra-provider policy's rules.infrastructure
 // block (see InfraPolicyForm.jsx), for the SMPC workload catalogue's
-// infrastructure picker. Mirrors ListDatasetNames' dataset-name listing, one
+// infrastructure picker. Mirrors DatasetSummary's {id, name} shape, one
 // level richer since a bare infra id isn't as self-describing as a dataset
 // name.
 type InfraSummary struct {

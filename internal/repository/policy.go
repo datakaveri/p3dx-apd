@@ -59,28 +59,33 @@ func (r *PolicyRepo) GetLatestByItemID(ctx context.Context, itemID string, now t
 	return p, err
 }
 
-// ListDatasetNames returns the distinct dataset names carried in
-// rules.dataset.name across all policies (set via the "Set Policy" page).
-func (r *PolicyRepo) ListDatasetNames(ctx context.Context) ([]string, error) {
+// ListDatasetSummaries returns the dataset catalogue: one {item_id, name} row
+// per distinct dataset item_id that has an access policy set (via the "Set
+// Policy" page), using each item_id's most recently issued policy for the
+// name. DISTINCT ON (item_id) (not name) so the id a caller gets back is
+// always a real item_id a by-item lookup (GetLatestByItemID) can find —
+// grouping by name instead would return the display label as the only key,
+// which doesn't match anything in the policies table's item_id column.
+func (r *PolicyRepo) ListDatasetSummaries(ctx context.Context) ([]domain.DatasetSummary, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT DISTINCT rules->'dataset'->>'name' AS name
+		SELECT DISTINCT ON (item_id) item_id, rules->'dataset'->>'name' AS name
 		FROM policies
 		WHERE rules->'dataset'->>'name' IS NOT NULL AND rules->'dataset'->>'name' <> ''
-		ORDER BY name`)
+		ORDER BY item_id, issued_at DESC`)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	names := []string{}
+	datasets := []domain.DatasetSummary{}
 	for rows.Next() {
-		var name string
-		if err := rows.Scan(&name); err != nil {
+		var d domain.DatasetSummary
+		if err := rows.Scan(&d.ItemID, &d.Name); err != nil {
 			return nil, err
 		}
-		names = append(names, name)
+		datasets = append(datasets, d)
 	}
-	return names, rows.Err()
+	return datasets, rows.Err()
 }
 
 // ListInfraProviders returns the Infrastructure Catalogue: one row per
