@@ -88,6 +88,39 @@ func (r *PolicyRepo) ListDatasetSummaries(ctx context.Context) ([]domain.Dataset
 	return datasets, rows.Err()
 }
 
+// ListInfraProviders returns the Infrastructure Catalogue: one row per
+// distinct infra id (item_id) that has an infra-provider policy set (via the
+// "Set Infrastructure Policy" page), using each id's most recently issued
+// policy. DISTINCT ON item_id (not a plain DISTINCT like ListDatasetNames)
+// because InfraPolicyForm.jsx mints a fresh policyId on every submit, so
+// re-registering the same infra creates a new row rather than updating the
+// old one — without this, a re-registered infra would show up twice.
+func (r *PolicyRepo) ListInfraProviders(ctx context.Context) ([]domain.InfraSummary, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT DISTINCT ON (item_id)
+			item_id,
+			COALESCE(rules->'infrastructure'->>'name', '') AS name,
+			COALESCE(rules->'infrastructure'->>'region', '') AS region,
+			COALESCE(rules->'infrastructure'->'platform'->>'provider', '') AS provider
+		FROM policies
+		WHERE rules->>'policy_type' = 'infra-provider'
+		ORDER BY item_id, issued_at DESC`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	infra := []domain.InfraSummary{}
+	for rows.Next() {
+		var s domain.InfraSummary
+		if err := rows.Scan(&s.ItemID, &s.Name, &s.Region, &s.Provider); err != nil {
+			return nil, err
+		}
+		infra = append(infra, s)
+	}
+	return infra, rows.Err()
+}
+
 func scanPolicy(row pgx.Row) (*domain.Policy, error) {
 	var p domain.Policy
 	var rulesRaw []byte
