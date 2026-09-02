@@ -142,6 +142,13 @@ func (s *AccessRequestService) ListPolicyDatasetNames(ctx context.Context) ([]st
 	return s.policies.ListDatasetNames(ctx)
 }
 
+// ListInfraProviders returns the Infrastructure Catalogue (InfraCat) — every
+// registered infrastructure's latest infra-provider policy, for the SMPC
+// workload catalogue's infrastructure picker.
+func (s *AccessRequestService) ListInfraProviders(ctx context.Context) ([]domain.InfraSummary, error) {
+	return s.policies.ListInfraProviders(ctx)
+}
+
 func (s *AccessRequestService) loadPolicyByItemIDFromDump(itemID string, now time.Time) (*domain.Policy, error) {
 	dir := os.Getenv("APD_POLICY_DUMP_DIR")
 	if dir == "" {

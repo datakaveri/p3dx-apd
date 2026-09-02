@@ -297,3 +297,16 @@ type ReceivePolicyBody struct {
 	Rules         map[string]interface{} `json:"rules"`
 	ExpiresAt     *time.Time             `json:"expiresAt,omitempty"`
 }
+
+// InfraSummary is one row of the Infrastructure Catalogue (InfraCat) — a
+// lightweight projection of an infra-provider policy's rules.infrastructure
+// block (see InfraPolicyForm.jsx), for the SMPC workload catalogue's
+// infrastructure picker. Mirrors ListDatasetNames' dataset-name listing, one
+// level richer since a bare infra id isn't as self-describing as a dataset
+// name.
+type InfraSummary struct {
+	ItemID   string `json:"item_id"`
+	Name     string `json:"name"`
+	Region   string `json:"region"`
+	Provider string `json:"provider"`
+}

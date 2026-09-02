@@ -97,6 +97,17 @@ func (h *Handler) ListPolicyDatasetNames(w http.ResponseWriter, r *http.Request)
 	writeJSON(w, http.StatusOK, domain.APIResponse{Status: "success", Data: names})
 }
 
+// GET /api/v1/policy/infrastructure — the Infrastructure Catalogue (InfraCat):
+// every registered infrastructure's latest infra-provider policy.
+func (h *Handler) ListInfraProviders(w http.ResponseWriter, r *http.Request) {
+	infra, err := h.accessReq.ListInfraProviders(r.Context())
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, domain.APIResponse{Status: "success", Data: infra})
+}
+
 func (h *Handler) GetPolicyByItemID(w http.ResponseWriter, r *http.Request) {
 	itemID := chi.URLParam(r, "itemId")
 

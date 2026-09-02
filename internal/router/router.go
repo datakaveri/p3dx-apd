@@ -39,6 +39,7 @@ func New(h *handler.Handler, fh *handler.FormsHandler, jwtMW *middleware.JWTMidd
 	r.Route("/api/v1/policy", func(r chi.Router) {
 		r.Post("/", h.ReceivePolicy)               // ConMan → APD: store policy
 		r.Get("/datasets", h.ListPolicyDatasetNames) // distinct dataset names with a policy set
+		r.Get("/infrastructure", h.ListInfraProviders) // InfraCat: registered infra-provider policies
 		r.Get("/{policyId}", h.GetPolicy)          // TOP   → APD: fetch policy
 		r.Get("/by-item/{itemId}", h.GetPolicyByItemID)
 	})
