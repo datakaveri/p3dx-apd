@@ -40,6 +40,17 @@ func New(h *handler.Handler, fh *handler.FormsHandler, jwtMW *middleware.JWTMidd
 		r.Post("/", h.ReceivePolicy)               // ConMan → APD: store policy
 		r.Get("/datasets", h.ListPolicyDatasets) // dataset catalogue: {item_id, name} with a policy set
 		r.Get("/infrastructure", h.ListInfraProviders) // InfraCat: registered infra-provider policies
+		// "My Infrastructure" dashboard (aaa derives provider_id from the
+		// caller's JWT and passes it as a query param — same trust model as
+		// the rest of this route block). Static "/mine" resolves before the
+		// "/{policyId}" wildcard below, so this doesn't collide with it.
+		r.Get("/mine", h.ListMyInfrastructure)
+		r.Delete("/by-item/{itemId}", h.DeleteMyInfrastructure)
+		// "My Datasets" dashboard — same trust model, mirrors the infra pair
+		// above exactly. Registered before the "/{policyId}" wildcard for
+		// the same reason.
+		r.Get("/mine-datasets", h.ListMyDatasets)
+		r.Delete("/by-item-dataset/{itemId}", h.DeleteMyDataset)
 		r.Get("/{policyId}", h.GetPolicy)          // TOP   → APD: fetch policy
 		r.Get("/by-item/{itemId}", h.GetPolicyByItemID)
 	})

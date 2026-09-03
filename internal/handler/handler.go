@@ -3,6 +3,7 @@ package handler
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -61,6 +62,10 @@ func (h *Handler) ReceivePolicy(w http.ResponseWriter, r *http.Request) {
 
 	policy, err := h.accessReq.ReceivePolicy(r.Context(), body)
 	if err != nil {
+		if errors.Is(err, service.ErrPolicyOwnership) {
+			writeError(w, http.StatusForbidden, err.Error())
+			return
+		}
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -118,6 +123,88 @@ func (h *Handler) GetPolicyByItemID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, domain.APIResponse{Status: "success", Data: policy})
+}
+
+// GET /api/v1/policy/mine?provider_id=... — the "My Infrastructure" dashboard
+// list for one provider. provider_id is trusted here the same way the rest of
+// this route block is: internal network only, aaa derives it server-side from
+// the caller's verified JWT before forwarding.
+func (h *Handler) ListMyInfrastructure(w http.ResponseWriter, r *http.Request) {
+	providerID := r.URL.Query().Get("provider_id")
+	if providerID == "" {
+		writeError(w, http.StatusBadRequest, "provider_id is required")
+		return
+	}
+
+	infra, err := h.accessReq.ListMyInfrastructure(r.Context(), providerID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, domain.APIResponse{Status: "success", Data: infra})
+}
+
+// DELETE /api/v1/policy/by-item/{itemId}?provider_id=... — soft-deletes an
+// infra entry. Returns 404 whether the item doesn't exist, is already
+// deleted, or belongs to a different provider — the caller can't distinguish
+// which, by design (see SoftDeleteByItemAndProvider).
+func (h *Handler) DeleteMyInfrastructure(w http.ResponseWriter, r *http.Request) {
+	itemID := chi.URLParam(r, "itemId")
+	providerID := r.URL.Query().Get("provider_id")
+	if providerID == "" {
+		writeError(w, http.StatusBadRequest, "provider_id is required")
+		return
+	}
+
+	deleted, err := h.accessReq.DeleteMyInfrastructure(r.Context(), itemID, providerID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if !deleted {
+		writeError(w, http.StatusNotFound, "infrastructure not found")
+		return
+	}
+	writeJSON(w, http.StatusOK, domain.APIResponse{Status: "success", Message: "infrastructure deleted"})
+}
+
+// GET /api/v1/policy/mine-datasets?provider_id=... — the "My Datasets"
+// dashboard list for one provider. Mirrors ListMyInfrastructure exactly.
+func (h *Handler) ListMyDatasets(w http.ResponseWriter, r *http.Request) {
+	providerID := r.URL.Query().Get("provider_id")
+	if providerID == "" {
+		writeError(w, http.StatusBadRequest, "provider_id is required")
+		return
+	}
+
+	datasets, err := h.accessReq.ListMyDatasets(r.Context(), providerID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, domain.APIResponse{Status: "success", Data: datasets})
+}
+
+// DELETE /api/v1/policy/by-item-dataset/{itemId}?provider_id=... —
+// soft-deletes a dataset entry. Mirrors DeleteMyInfrastructure exactly.
+func (h *Handler) DeleteMyDataset(w http.ResponseWriter, r *http.Request) {
+	itemID := chi.URLParam(r, "itemId")
+	providerID := r.URL.Query().Get("provider_id")
+	if providerID == "" {
+		writeError(w, http.StatusBadRequest, "provider_id is required")
+		return
+	}
+
+	deleted, err := h.accessReq.DeleteMyDataset(r.Context(), itemID, providerID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if !deleted {
+		writeError(w, http.StatusNotFound, "dataset not found")
+		return
+	}
+	writeJSON(w, http.StatusOK, domain.APIResponse{Status: "success", Message: "dataset deleted"})
 }
 
 // ---------------------------------------------------------------------------

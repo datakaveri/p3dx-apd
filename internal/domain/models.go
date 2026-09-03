@@ -320,4 +320,19 @@ type InfraSummary struct {
 	Name     string `json:"name"`
 	Region   string `json:"region"`
 	Provider string `json:"provider"`
+	// IssuedAt is only populated by ListByProvider (the "My Infrastructure"
+	// dashboard) — ListInfraProviders' catalogue projection doesn't need it.
+	IssuedAt time.Time `json:"issued_at,omitempty"`
+}
+
+// MyDatasetSummary is one row of the "My Datasets" dashboard list — a
+// provider-scoped projection of a data-provider policy's rules, mirroring
+// InfraSummary's shape (one level richer than DatasetSummary since the
+// dashboard also shows Application/Access Level columns).
+type MyDatasetSummary struct {
+	ItemID       string    `json:"item_id"`
+	Name         string    `json:"name"`
+	Application  string    `json:"application"`
+	AccessLevel  string    `json:"access_level"`
+	IssuedAt     time.Time `json:"issued_at,omitempty"`
 }
