@@ -15,6 +15,11 @@ import (
 	"github.com/cdpg/dx/apd-go/internal/repository"
 )
 
+// ErrPolicyOwnership is returned by ReceivePolicy when an infra-provider
+// policy resubmission's item_id already belongs to a different provider —
+// the handler maps this to 403, distinct from other (500-worthy) errors.
+var ErrPolicyOwnership = errors.New("item_id belongs to a different provider")
+
 // AccessRequestService orchestrates the full TEE-based data access lifecycle.
 type AccessRequestService struct {
 	repo    *repository.AccessRequestRepo
@@ -68,6 +73,24 @@ func (s *AccessRequestService) ReceivePolicy(ctx context.Context, body domain.Re
 	providerID := body.ProviderID
 	if providerID == "" {
 		providerID = body.IssuedBy
+	}
+
+	// Write-path ownership hardening (infra-provider and data-provider
+	// policies only): resubmitting the same item_id is how "editing" a
+	// registration works (a fresh row supersedes the old one via
+	// GetLatestByItemID's issued_at ordering), so without this check, any
+	// caller could silently take over another provider's item_id.
+	// provider_id here is only trustworthy because p3dx-aaa's POST /policy
+	// handler derives it server-side from the caller's verified JWT before
+	// forwarding — never trust it, but do enforce it.
+	if policyType, _ := body.Rules["policy_type"].(string); policyType == "infra-provider" || policyType == "data-provider" {
+		existing, err := s.policies.GetLatestByItemID(ctx, body.ItemID, time.Now())
+		if err != nil {
+			return nil, err
+		}
+		if existing != nil && existing.ProviderID != providerID {
+			return nil, ErrPolicyOwnership
+		}
 	}
 
 	policy := &domain.Policy{
@@ -149,6 +172,34 @@ func (s *AccessRequestService) ListPolicyDatasets(ctx context.Context) ([]domain
 // workload catalogue's infrastructure picker.
 func (s *AccessRequestService) ListInfraProviders(ctx context.Context) ([]domain.InfraSummary, error) {
 	return s.policies.ListInfraProviders(ctx)
+}
+
+// ListMyInfrastructure returns the "My Infrastructure" dashboard list — one
+// row per infra item_id owned by providerID (a server-derived value; see
+// ReceivePolicy's ownership check above).
+func (s *AccessRequestService) ListMyInfrastructure(ctx context.Context, providerID string) ([]domain.InfraSummary, error) {
+	return s.policies.ListByProvider(ctx, providerID)
+}
+
+// DeleteMyInfrastructure soft-deletes every policy row for itemID, but only
+// if it's owned by providerID — this is the actual ownership enforcement for
+// deletion (the query itself won't match a different provider's item_id).
+func (s *AccessRequestService) DeleteMyInfrastructure(ctx context.Context, itemID, providerID string) (bool, error) {
+	return s.policies.SoftDeleteByItemAndProvider(ctx, itemID, providerID)
+}
+
+// ListMyDatasets returns the "My Datasets" dashboard list — one row per
+// dataset item_id owned by providerID. Mirrors ListMyInfrastructure exactly.
+func (s *AccessRequestService) ListMyDatasets(ctx context.Context, providerID string) ([]domain.MyDatasetSummary, error) {
+	return s.policies.ListDatasetsByProvider(ctx, providerID)
+}
+
+// DeleteMyDataset soft-deletes every policy row for itemID, but only if it's
+// owned by providerID. The underlying repo method is type-agnostic (no
+// policy_type filter), so this is a thin wrapper mirroring
+// DeleteMyInfrastructure for naming/API symmetry only.
+func (s *AccessRequestService) DeleteMyDataset(ctx context.Context, itemID, providerID string) (bool, error) {
+	return s.policies.SoftDeleteByItemAndProvider(ctx, itemID, providerID)
 }
 
 func (s *AccessRequestService) loadPolicyByItemIDFromDump(itemID string, now time.Time) (*domain.Policy, error) {

@@ -256,7 +256,13 @@ CREATE TABLE policies (
     data_url        TEXT        NOT NULL DEFAULT '',
     rules           JSONB       NOT NULL DEFAULT '{}',
     issued_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    expires_at      TIMESTAMPTZ
+    expires_at      TIMESTAMPTZ,
+    -- Soft delete (mirrors form_submissions) — "My Infrastructure" delete
+    -- tombstones every row for an item_id instead of removing them, so
+    -- registration history is preserved for audit purposes.
+    deleted         BOOLEAN     NOT NULL DEFAULT FALSE,
+    deleted_at      TIMESTAMPTZ
 );
 
 CREATE INDEX idx_policies_item_id ON policies (item_id);
+CREATE INDEX idx_policies_provider_id ON policies (provider_id);
