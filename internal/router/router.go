@@ -51,6 +51,9 @@ func New(h *handler.Handler, fh *handler.FormsHandler, jwtMW *middleware.JWTMidd
 		// the same reason.
 		r.Get("/mine-datasets", h.ListMyDatasets)
 		r.Delete("/by-item-dataset/{itemId}", h.DeleteMyDataset)
+		// Consumer grants gov_layer posts on data-provider approval. Before
+		// the "/{policyId}" wildcard for the same reason as "/mine".
+		r.Get("/grants", h.ListGrants)
 		r.Get("/{policyId}", h.GetPolicy)          // TOP   → APD: fetch policy
 		r.Get("/by-item/{itemId}", h.GetPolicyByItemID)
 	})

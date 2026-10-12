@@ -285,6 +285,11 @@ type Policy struct {
 	ExpiresAt     *time.Time             `json:"expiresAt,omitempty"`
 }
 
+// PolicyTypeConsumerGrant is rules.policy_type of a grant gov_layer posts
+// when a data provider approves a job: the job's consumer may use the dataset
+// (item_id) for that job/contract. Never the dataset's own policy.
+const PolicyTypeConsumerGrant = "consumer-grant"
+
 type ReceivePolicyBody struct {
 	PolicyID      string                 `json:"policyId"`
 	ItemID        string                 `json:"itemId"`
