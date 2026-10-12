@@ -47,17 +47,42 @@ func (r *PolicyRepo) GetByID(ctx context.Context, policyID string) (*domain.Poli
 }
 
 // GetLatestByItemID returns the most recently issued, non-expired, non-deleted
-// policy for itemID.
+// policy for itemID. Consumer grants (PolicyTypeConsumerGrant) share their
+// dataset's item_id but are never the item's own policy, so they're skipped.
 func (r *PolicyRepo) GetLatestByItemID(ctx context.Context, itemID string, now time.Time) (*domain.Policy, error) {
 	row := r.db.QueryRow(ctx, `
 		SELECT `+policyCols+` FROM policies
 		WHERE item_id=$1 AND NOT deleted AND (expires_at IS NULL OR expires_at > $2)
-		ORDER BY issued_at DESC LIMIT 1`, itemID, now)
+			AND COALESCE(rules->>'policy_type', '') <> $3
+		ORDER BY issued_at DESC LIMIT 1`, itemID, now, domain.PolicyTypeConsumerGrant)
 	p, err := scanPolicy(row)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}
 	return p, err
+}
+
+// ListGrantsByJob returns the non-deleted consumer grants posted for jobID,
+// oldest first.
+func (r *PolicyRepo) ListGrantsByJob(ctx context.Context, jobID string) ([]domain.Policy, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT `+policyCols+` FROM policies
+		WHERE NOT deleted AND rules->>'policy_type' = $1 AND rules->>'job_id' = $2
+		ORDER BY issued_at`, domain.PolicyTypeConsumerGrant, jobID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	grants := []domain.Policy{}
+	for rows.Next() {
+		p, err := scanPolicy(rows)
+		if err != nil {
+			return nil, err
+		}
+		grants = append(grants, *p)
+	}
+	return grants, rows.Err()
 }
 
 // ListDatasetSummaries returns the dataset catalogue: one {item_id, name} row

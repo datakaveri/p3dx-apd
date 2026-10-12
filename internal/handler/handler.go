@@ -114,6 +114,22 @@ func (h *Handler) ListInfraProviders(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, domain.APIResponse{Status: "success", Data: infra})
 }
 
+// GET /api/v1/policy/grants?job_id=... — the consumer grants gov_layer posted
+// for a job (one per approving data provider's dataset).
+func (h *Handler) ListGrants(w http.ResponseWriter, r *http.Request) {
+	jobID := r.URL.Query().Get("job_id")
+	if jobID == "" {
+		writeError(w, http.StatusBadRequest, "job_id is required")
+		return
+	}
+	grants, err := h.accessReq.ListGrantsByJob(r.Context(), jobID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, domain.APIResponse{Status: "success", Data: grants})
+}
+
 func (h *Handler) GetPolicyByItemID(w http.ResponseWriter, r *http.Request) {
 	itemID := chi.URLParam(r, "itemId")
 

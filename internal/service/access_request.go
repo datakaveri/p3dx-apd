@@ -158,6 +158,14 @@ func (s *AccessRequestService) GetPolicyByItemID(ctx context.Context, itemID str
 	return policy, nil
 }
 
+// ListGrantsByJob returns the consumer grants posted for jobID.
+func (s *AccessRequestService) ListGrantsByJob(ctx context.Context, jobID string) ([]domain.Policy, error) {
+	if jobID == "" {
+		return nil, errors.New("job_id is required")
+	}
+	return s.policies.ListGrantsByJob(ctx, jobID)
+}
+
 // ListPolicyDatasets returns the dataset catalogue — {item_id, name} for
 // every dataset that has an access policy set (via the "Set Policy" page),
 // for use by services (like SMPC's dataset picker) that need to know which
