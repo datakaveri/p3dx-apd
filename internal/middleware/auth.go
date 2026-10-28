@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -19,13 +20,19 @@ const (
 	ContextKeyUserID contextKey = "userID"
 	ContextKeyRoles  contextKey = "roles"
 	ContextKeyEmail  contextKey = "email"
+	// ContextKeyUsername holds the token's preferred_username.
+	ContextKeyUsername contextKey = "username"
 )
 
+// JWTMiddleware accepts ES256 tokens signed by the configured EC key and,
+// when a Keycloak JWKS URL is set, RS256 tokens issued by that Keycloak realm
+// (what the P3DX UI holds after signing in).
 type JWTMiddleware struct {
 	publicKey *ecdsa.PublicKey
+	keycloak  *jwksCache
 }
 
-func NewJWTMiddleware(publicKeyPath string) (*JWTMiddleware, error) {
+func NewJWTMiddleware(publicKeyPath, keycloakJWKSURL string) (*JWTMiddleware, error) {
 	data, err := os.ReadFile(publicKeyPath)
 	if err != nil {
 		return nil, fmt.Errorf("read public key: %w", err)
@@ -42,7 +49,11 @@ func NewJWTMiddleware(publicKeyPath string) (*JWTMiddleware, error) {
 	if !ok {
 		return nil, fmt.Errorf("public key is not ECDSA")
 	}
-	return &JWTMiddleware{publicKey: ecPub}, nil
+	m := &JWTMiddleware{publicKey: ecPub}
+	if keycloakJWKSURL != "" {
+		m.keycloak = newJWKSCache(keycloakJWKSURL)
+	}
+	return m, nil
 }
 
 // Authenticate validates the Bearer JWT and injects claims into the request context.
@@ -63,6 +74,7 @@ func (m *JWTMiddleware) Authenticate(next http.Handler) http.Handler {
 		ctx := r.Context()
 		ctx = context.WithValue(ctx, ContextKeyUserID, stringClaim(claims, "sub"))
 		ctx = context.WithValue(ctx, ContextKeyEmail, stringClaim(claims, "email"))
+		ctx = context.WithValue(ctx, ContextKeyUsername, stringClaim(claims, "preferred_username"))
 		ctx = context.WithValue(ctx, ContextKeyRoles, rolesClaim(claims))
 
 		next.ServeHTTP(w, r.WithContext(ctx))
@@ -97,11 +109,19 @@ func (m *JWTMiddleware) extractAndValidate(r *http.Request) (*jwt.Token, error) 
 	raw := strings.TrimPrefix(authHeader, "Bearer ")
 
 	return jwt.Parse(raw, func(t *jwt.Token) (interface{}, error) {
-		if _, ok := t.Method.(*jwt.SigningMethodECDSA); !ok {
+		switch t.Method.(type) {
+		case *jwt.SigningMethodECDSA:
+			return m.publicKey, nil
+		case *jwt.SigningMethodRSA:
+			if m.keycloak == nil {
+				return nil, fmt.Errorf("RS256 tokens not accepted: KEYCLOAK_JWKS_URL not set")
+			}
+			kid, _ := t.Header["kid"].(string)
+			return m.keycloak.key(kid)
+		default:
 			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
 		}
-		return m.publicKey, nil
-	})
+	}, jwt.WithValidMethods([]string{"ES256", "RS256"}), jwt.WithExpirationRequired())
 }
 
 // ---------------------------------------------------------------------------
@@ -116,6 +136,32 @@ func UserIDFromCtx(ctx context.Context) string {
 func EmailFromCtx(ctx context.Context) string {
 	v, _ := ctx.Value(ContextKeyEmail).(string)
 	return v
+}
+
+func UsernameFromCtx(ctx context.Context) string {
+	v, _ := ctx.Value(ContextKeyUsername).(string)
+	return v
+}
+
+// ProviderIDFromCtx is the caller's provider_id as stored on their policies:
+// "provider-" + slugify(username, or email if the token has no username).
+// Must match slugify() in the UI's PolicyForm.jsx / InfraPolicyForm.jsx and
+// gov_layer's providerIDForUsername.
+func ProviderIDFromCtx(ctx context.Context) string {
+	name := UsernameFromCtx(ctx)
+	if name == "" {
+		name = EmailFromCtx(ctx)
+	}
+	return "provider-" + slugify(name)
+}
+
+var nonSlugChars = regexp.MustCompile(`[^a-z0-9]+`)
+
+func slugify(s string) string {
+	if s == "" {
+		s = "unknown"
+	}
+	return strings.Trim(nonSlugChars.ReplaceAllString(strings.ToLower(s), "-"), "-")
 }
 
 func RolesFromCtx(ctx context.Context) []string {

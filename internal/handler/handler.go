@@ -37,7 +37,13 @@ func (h *Handler) ReceivePolicy(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid request body: "+err.Error())
 		return
 	}
+	h.storePolicy(w, r, body)
+}
 
+// storePolicy dumps body to APD_POLICY_DUMP_DIR, stores it and writes the
+// response. Shared by the internal POST /api/v1/policy and the user-facing
+// POST /api/v1/me/policies.
+func (h *Handler) storePolicy(w http.ResponseWriter, r *http.Request, body domain.ReceivePolicyBody) {
 	func() {
 		b, err := json.MarshalIndent(body, "", "  ")
 		if err != nil {
