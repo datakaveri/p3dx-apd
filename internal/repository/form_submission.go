@@ -24,7 +24,7 @@ const formSubmissionCols = `
 	id, form_id, requested_by, output_owner_id,
 	num_server_rounds, fraction_evaluate, local_epochs, learning_rate, batch_size,
 	model, framework, components, filled, requested_at, filled_at,
-	selected_providers, ip_address, port, ram_usage, created_at, updated_at`
+	selected_providers, created_at, updated_at`
 
 // Upsert resolves the live row for sub.FormID (if any) and reuses its id, so
 // a re-submit for the same form overwrites in place instead of creating a
@@ -55,19 +55,19 @@ func (r *FormSubmissionRepo) Upsert(ctx context.Context, sub *domain.FormSubmiss
 			id, form_id, requested_by, output_owner_id,
 			num_server_rounds, fraction_evaluate, local_epochs, learning_rate, batch_size,
 			model, framework, components, filled, requested_at, filled_at,
-			selected_providers, ip_address, port, ram_usage
+			selected_providers
 		) VALUES (
-			$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19
+			$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16
 		)
 		ON CONFLICT (id) DO UPDATE SET
 			form_id=$2, requested_by=$3, output_owner_id=$4,
 			num_server_rounds=$5, fraction_evaluate=$6, local_epochs=$7, learning_rate=$8, batch_size=$9,
 			model=$10, framework=$11, components=$12, filled=$13, requested_at=$14, filled_at=$15,
-			selected_providers=$16, ip_address=$17, port=$18, ram_usage=$19`,
+			selected_providers=$16`,
 		sub.ID, sub.FormID, sub.RequestedBy, sub.OutputOwnerID,
 		sub.NumServerRounds, sub.FractionEvaluate, sub.LocalEpochs, sub.LearningRate, sub.BatchSize,
 		sub.Model, sub.Framework, components, sub.Filled, sub.RequestedAt, sub.FilledAt,
-		selected, sub.IPAddress, sub.Port, sub.RAMUsage,
+		selected,
 	)
 	return err
 }
@@ -122,7 +122,7 @@ func scanFormSubmission(row pgx.Row) (*domain.FormSubmission, error) {
 		&sub.ID, &sub.FormID, &sub.RequestedBy, &sub.OutputOwnerID,
 		&sub.NumServerRounds, &sub.FractionEvaluate, &sub.LocalEpochs, &sub.LearningRate, &sub.BatchSize,
 		&sub.Model, &sub.Framework, &componentsRaw, &sub.Filled, &sub.RequestedAt, &sub.FilledAt,
-		&selectedRaw, &sub.IPAddress, &sub.Port, &sub.RAMUsage, &sub.CreatedAt, &sub.UpdatedAt,
+		&selectedRaw, &sub.CreatedAt, &sub.UpdatedAt,
 	)
 	if err != nil {
 		return nil, err

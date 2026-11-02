@@ -183,9 +183,6 @@ CREATE TABLE form_submissions (
     filled_at           TIMESTAMPTZ NOT NULL,
 
     selected_providers  JSONB       NOT NULL DEFAULT '[]',
-    ip_address          TEXT,
-    port                DOUBLE PRECISION,
-    ram_usage           DOUBLE PRECISION,
 
     deleted             BOOLEAN     NOT NULL DEFAULT FALSE,
     deleted_at          TIMESTAMPTZ,
@@ -217,14 +214,7 @@ CREATE TABLE provider_forms (
     data_owner_id       TEXT,
     dataset_name        TEXT,
     dataset_location_url TEXT,
-
-    ram                 DOUBLE PRECISION,
-    memory_mb           DOUBLE PRECISION,
-    data_size_bytes     DOUBLE PRECISION,
     data_resource_id    TEXT,
-    ip_address          TEXT,
-    port                DOUBLE PRECISION,
-    ram_usage           DOUBLE PRECISION,
 
     filled              BOOLEAN     NOT NULL DEFAULT TRUE,
     filled_at           TIMESTAMPTZ NOT NULL,
