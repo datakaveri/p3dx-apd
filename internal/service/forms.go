@@ -64,9 +64,6 @@ func (s *FormsService) CreateSubmission(ctx context.Context, body domain.CreateF
 		RequestedAt:       requestedAt,
 		FilledAt:          now,
 		SelectedProviders: selected,
-		IPAddress:         strOrNull(body.IPAddress),
-		Port:              numOrNull(body.Port),
-		RAMUsage:          numOrNull(body.RAMUsage),
 	}
 
 	if err := s.subs.Upsert(ctx, sub); err != nil {
@@ -102,13 +99,7 @@ func (s *FormsService) CreateProviderForm(ctx context.Context, body domain.Creat
 		DataOwnerID:        strOrNull(body.DataOwnerID),
 		DatasetName:        strOrNull(body.DatasetName),
 		DatasetLocationURL: strOrNull(body.DatasetLocationURL),
-		RAM:                numOrNull(body.RAM),
-		MemoryMB:           numOrNull(body.MemoryMB),
-		DataSizeBytes:      numOrNull(body.DataSizeBytes),
 		DataResourceID:     strOrNull(body.DataResourceID),
-		IPAddress:          strOrNull(body.IPAddress),
-		Port:               numOrNull(body.Port),
-		RAMUsage:           numOrNull(body.RAMUsage),
 		Filled:             true,
 		FilledAt:           filledAt,
 		SubmittedBy:        strOrNull(body.SubmittedBy),

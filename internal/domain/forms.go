@@ -28,9 +28,6 @@ type FormSubmission struct {
 	RequestedAt       time.Time              `json:"requested_at"`
 	FilledAt          time.Time              `json:"filled_at"`
 	SelectedProviders []string               `json:"selected_providers"`
-	IPAddress         *string                `json:"ip_address"`
-	Port              *float64               `json:"port"`
-	RAMUsage          *float64               `json:"ram_usage"`
 	CreatedAt         time.Time              `json:"created_at"`
 	UpdatedAt         time.Time              `json:"updated_at"`
 }
@@ -52,9 +49,6 @@ type CreateFormSubmissionBody struct {
 	Framework         string                 `json:"framework"`
 	Components        map[string]interface{} `json:"components"`
 	SelectedProviders []string               `json:"selected_providers"`
-	IPAddress         string                 `json:"ip_address"`
-	Port              interface{}            `json:"port"`
-	RAMUsage          interface{}            `json:"ram_usage"`
 }
 
 type ProviderForm struct {
@@ -63,13 +57,7 @@ type ProviderForm struct {
 	DataOwnerID        *string   `json:"data_owner_id"`
 	DatasetName        *string   `json:"dataset_name"`
 	DatasetLocationURL *string   `json:"dataset_location_url"`
-	RAM                *float64  `json:"ram"`
-	MemoryMB           *float64  `json:"memory_mb"`
-	DataSizeBytes      *float64  `json:"data_size_bytes"`
 	DataResourceID     *string   `json:"data_resource_id"`
-	IPAddress          *string   `json:"ip_address"`
-	Port               *float64  `json:"port"`
-	RAMUsage           *float64  `json:"ram_usage"`
 	Filled             bool      `json:"filled"`
 	FilledAt           time.Time `json:"filled_at"`
 	SubmittedBy        *string   `json:"submitted_by"`
@@ -77,17 +65,11 @@ type ProviderForm struct {
 }
 
 type CreateProviderFormBody struct {
-	FormID             string      `json:"form_id"`
-	DataOwnerID        string      `json:"data_owner_id"`
-	DatasetName        string      `json:"dataset_name"`
-	DatasetLocationURL string      `json:"dataset_location_url"`
-	RAM                interface{} `json:"ram"`
-	MemoryMB           interface{} `json:"memory_mb"`
-	DataSizeBytes      interface{} `json:"data_size_bytes"`
-	DataResourceID     string      `json:"data_resource_id"`
-	IPAddress          string      `json:"ip_address"`
-	Port               interface{} `json:"port"`
-	FilledAt           string      `json:"filled_at,omitempty"`
-	SubmittedBy        string      `json:"submitted_by"`
-	RAMUsage           interface{} `json:"ram_usage"`
+	FormID             string `json:"form_id"`
+	DataOwnerID        string `json:"data_owner_id"`
+	DatasetName        string `json:"dataset_name"`
+	DatasetLocationURL string `json:"dataset_location_url"`
+	DataResourceID     string `json:"data_resource_id"`
+	FilledAt           string `json:"filled_at,omitempty"`
+	SubmittedBy        string `json:"submitted_by"`
 }

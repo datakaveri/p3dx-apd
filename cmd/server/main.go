@@ -79,13 +79,14 @@ func main() {
 	// ---------------------------------------------------------------------------
 	h := handler.New(accessReqSvc)
 	fh := handler.NewForms(formsSvc)
+	uh := handler.NewUser(accessReqSvc, formsSvc)
 
-	jwtMW, err := middleware.NewJWTMiddleware(cfg.JWT.PublicKeyPath)
+	jwtMW, err := middleware.NewJWTMiddleware(cfg.JWT.PublicKeyPath, cfg.JWT.KeycloakJWKSURL)
 	if err != nil {
 		log.Fatalf("init JWT middleware: %v", err)
 	}
 
-	mux := router.New(h, fh, jwtMW, cfg.FormsPushToken)
+	mux := router.New(h, fh, uh, jwtMW, cfg.FormsPushToken, cfg.CORSOrigins)
 
 	// ---------------------------------------------------------------------------
 	// HTTP Server with graceful shutdown

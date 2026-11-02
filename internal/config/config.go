@@ -4,21 +4,26 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
 
 type Config struct {
-	Server   ServerConfig
-	DB       DBConfig
-	JWT      JWTConfig
-	Email    EmailConfig
-	TEE      TEEConfig
-	AMD      AMDConfig
-	APD      APDConfig
-	// FormsPushToken guards /api/v1/forms/*: shared secret aaa sends as
-	// X-Forms-Push-Token when forwarding form writes. Empty disables the check.
+	Server ServerConfig
+	DB     DBConfig
+	JWT    JWTConfig
+	Email  EmailConfig
+	TEE    TEEConfig
+	AMD    AMDConfig
+	APD    APDConfig
+	// FormsPushToken guards /api/v1/forms/* for service callers (e.g.
+	// gov_layer), sent as X-Forms-Push-Token. Browser callers use a user JWT
+	// instead. Empty disables the check.
 	FormsPushToken string
+	// CORSOrigins are the browser origins (e.g. the P3DX UI) allowed to call
+	// the user-facing routes. Empty allows none.
+	CORSOrigins []string
 }
 
 type ServerConfig struct {
@@ -46,8 +51,12 @@ type JWTConfig struct {
 	PrivateKeyPath string
 	// Path to PEM-encoded EC public key for verification
 	PublicKeyPath string
-	ExpiryMinutes int
-	Issuer        string
+	// KeycloakJWKSURL, when set, also accepts Keycloak-issued (RS256) user
+	// tokens, verified against this realm's JWKS
+	// (<keycloak>/realms/<realm>/protocol/openid-connect/certs).
+	KeycloakJWKSURL string
+	ExpiryMinutes   int
+	Issuer          string
 }
 
 type EmailConfig struct {
@@ -106,10 +115,11 @@ func Load() (*Config, error) {
 			SSLMode:  getEnv("DB_SSLMODE", "disable"),
 		},
 		JWT: JWTConfig{
-			PrivateKeyPath: mustEnv("JWT_PRIVATE_KEY_PATH"),
-			PublicKeyPath:  mustEnv("JWT_PUBLIC_KEY_PATH"),
-			ExpiryMinutes:  getEnvInt("JWT_EXPIRY_MINUTES", 60),
-			Issuer:         getEnv("JWT_ISSUER", "https://apd.example.com"),
+			PrivateKeyPath:  mustEnv("JWT_PRIVATE_KEY_PATH"),
+			PublicKeyPath:   mustEnv("JWT_PUBLIC_KEY_PATH"),
+			KeycloakJWKSURL: os.Getenv("KEYCLOAK_JWKS_URL"),
+			ExpiryMinutes:   getEnvInt("JWT_EXPIRY_MINUTES", 60),
+			Issuer:          getEnv("JWT_ISSUER", "https://apd.example.com"),
 		},
 		Email: EmailConfig{
 			SMTPHost:       getEnv("SMTP_HOST", "localhost"),
@@ -134,6 +144,7 @@ func Load() (*Config, error) {
 			SigningKeyPath: mustEnv("APD_SIGNING_KEY_PATH"),
 		},
 		FormsPushToken: os.Getenv("FORMS_PUSH_TOKEN"),
+		CORSOrigins:    splitList(os.Getenv("CORS_ORIGINS")),
 	}
 	return cfg, nil
 }
@@ -169,4 +180,15 @@ func getEnvBool(key string, fallback bool) bool {
 		}
 	}
 	return fallback
+}
+
+// splitList splits a comma-separated env value, dropping blanks.
+func splitList(v string) []string {
+	var out []string
+	for _, part := range strings.Split(v, ",") {
+		if part = strings.TrimSpace(part); part != "" {
+			out = append(out, part)
+		}
+	}
+	return out
 }
