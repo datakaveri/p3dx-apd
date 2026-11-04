@@ -36,15 +36,18 @@ type FormSubmission struct {
 // Numeric fields are interface{} because the JS coercion accepts a number,
 // a numeric string, or an absent field — all of which fold into numOrNull.
 type CreateFormSubmissionBody struct {
-	FormID            string                 `json:"form_id"`
-	RequestedBy       string                 `json:"requested_by"`
-	OutputOwnerID     string                 `json:"output_owner_id"`
-	RequestedAt       string                 `json:"requested_at,omitempty"`
-	NumServerRounds   interface{}            `json:"num_server_rounds"`
-	FractionEvaluate  interface{}            `json:"fraction_evaluate"`
-	LocalEpochs       interface{}            `json:"local_epochs"`
-	LearningRate      interface{}            `json:"learning_rate"`
-	BatchSize         interface{}            `json:"batch_size"`
+	FormID           string      `json:"form_id"`
+	RequestedBy      string      `json:"requested_by"`
+	OutputOwnerID    string      `json:"output_owner_id"`
+	RequestedAt      string      `json:"requested_at,omitempty"`
+	NumServerRounds  interface{} `json:"num_server_rounds"`
+	FractionEvaluate interface{} `json:"fraction_evaluate"`
+	LocalEpochs      interface{} `json:"local_epochs"`
+	LearningRate     interface{} `json:"learning_rate"`
+	BatchSize        interface{} `json:"batch_size"`
+	// MinVCPUs is only range-checked (>= 1 integer when sent); it is not
+	// stored on the submission.
+	MinVCPUs          interface{}            `json:"min_vcpus,omitempty"`
 	Model             string                 `json:"model"`
 	Framework         string                 `json:"framework"`
 	Components        map[string]interface{} `json:"components"`

@@ -29,6 +29,9 @@ func (s *FormsService) CreateSubmission(ctx context.Context, body domain.CreateF
 	if body.FormID == "" || body.RequestedBy == "" || body.OutputOwnerID == "" {
 		return nil, errors.New("form_id, requested_by, and output_owner_id are required")
 	}
+	if err := ValidateTrainingParams(body); err != nil {
+		return nil, err
+	}
 
 	now := time.Now()
 	requestedAt := now
